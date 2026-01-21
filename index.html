@@ -277,17 +277,60 @@ const firebaseConfig = {
     await auth.signOut();
   };
 
-  auth.onAuthStateChanged(user => {
-    if(user) {
-      authArea.classList.add('hidden');
-      userArea.classList.remove('hidden');
-      userEmail.textContent = user.email;
-    } else {
-      authArea.classList.remove('hidden');
-      userArea.classList.add('hidden');
-      userEmail.textContent = '';
+  import { doc, getDoc, setDoc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+auth.onAuthStateChanged(async (user) => {
+  console.log("Auth state changed:", user);
+
+  if (user) {
+    console.log("Đã login:", user.email);
+
+    authArea.classList.add('hidden');
+    userArea.classList.remove('hidden');
+    userEmail.textContent = user.email;
+
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      console.log("Firestore snap exists:", snap.exists());
+
+      if (!snap.exists()) {
+        let role = "staff";
+        if (user.email === "tiemanconech@admin.local") {
+          role = "owner";
+        }
+
+        console.log("Đang tạo user với role:", role);
+
+        await setDoc(userRef, {
+          email: user.email,
+          role: role,
+          createdAt: serverTimestamp()
+        });
+
+        console.log("TẠO USER THÀNH CÔNG");
+        window.currentUser = { email: user.email, role: role };
+      } else {
+        console.log("User đã tồn tại:", snap.data());
+        window.currentUser = snap.data();
+      }
+
+    } catch (e) {
+      console.error("Lỗi khi ghi user vào Firestore:", e);
     }
-  });
+
+  } else {
+    console.log("Chưa login");
+
+    authArea.classList.remove('hidden');
+    userArea.classList.add('hidden');
+    userEmail.textContent = '';
+    window.currentUser = null;
+  }
+});
+
 
   // ========== PRODUCTS realtime ==========
   let products = []; // local cache
