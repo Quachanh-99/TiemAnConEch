@@ -207,9 +207,9 @@ const firebaseConfig = {
   // =========================================
 
   // Init Firebase (compat mode)
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+ firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
   const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
   document.getElementById('storeIdDisplay').textContent = storeId;
@@ -278,45 +278,28 @@ const firebaseConfig = {
   };
 
   
-
 auth.onAuthStateChanged(async (user) => {
-  console.log("Auth state changed:", user);
-
   if (user) {
     authArea.classList.add('hidden');
     userArea.classList.remove('hidden');
     userEmail.textContent = user.email;
 
-    try {
-      const userRef = db.collection("users").doc(user.uid);
-      const snap = await userRef.get();
+    const userRef = db.collection("users").doc(user.uid);
+    const snap = await userRef.get();
 
-      console.log("Firestore snap exists:", snap.exists);
+    if (!snap.exists) {
+      let role = "staff";
+      if (user.email === "tiemanconech@admin.local") role = "owner";
 
-      if (!snap.exists) {
-        let role = "staff";
-        if (user.email === "tiemanconech@admin.local") {
-          role = "owner";
-        }
+      await userRef.set({
+        email: user.email,
+        role: role,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
 
-        console.log("Đang tạo user với role:", role);
-
-        await userRef.set({
-          email: user.email,
-          role: role,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        console.log("TẠO USER THÀNH CÔNG");
-        window.currentUser = { email: user.email, role: role };
-      } else {
-        console.log("User đã tồn tại:", snap.data());
-        window.currentUser = snap.data();
-      }
-
-    } catch (e) {
-      console.error("Lỗi khi ghi user vào Firestore:", e);
-      alert("Không ghi được user vào Firestore: " + e.message);
+      window.currentUser = { email: user.email, role: role };
+    } else {
+      window.currentUser = snap.data();
     }
 
   } else {
