@@ -277,26 +277,23 @@ const firebaseConfig = {
     await auth.signOut();
   };
 
-  import { doc, getDoc, setDoc, serverTimestamp } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
 
 auth.onAuthStateChanged(async (user) => {
   console.log("Auth state changed:", user);
 
   if (user) {
-    console.log("Đã login:", user.email);
-
     authArea.classList.add('hidden');
     userArea.classList.remove('hidden');
     userEmail.textContent = user.email;
 
     try {
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
+      const userRef = db.collection("users").doc(user.uid);
+      const snap = await userRef.get();
 
-      console.log("Firestore snap exists:", snap.exists());
+      console.log("Firestore snap exists:", snap.exists);
 
-      if (!snap.exists()) {
+      if (!snap.exists) {
         let role = "staff";
         if (user.email === "tiemanconech@admin.local") {
           role = "owner";
@@ -304,10 +301,10 @@ auth.onAuthStateChanged(async (user) => {
 
         console.log("Đang tạo user với role:", role);
 
-        await setDoc(userRef, {
+        await userRef.set({
           email: user.email,
           role: role,
-          createdAt: serverTimestamp()
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         console.log("TẠO USER THÀNH CÔNG");
@@ -319,11 +316,10 @@ auth.onAuthStateChanged(async (user) => {
 
     } catch (e) {
       console.error("Lỗi khi ghi user vào Firestore:", e);
+      alert("Không ghi được user vào Firestore: " + e.message);
     }
 
   } else {
-    console.log("Chưa login");
-
     authArea.classList.remove('hidden');
     userArea.classList.add('hidden');
     userEmail.textContent = '';
