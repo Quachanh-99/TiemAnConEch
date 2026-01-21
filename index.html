@@ -2,114 +2,127 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<title>POS Tiệm Ăn Con Ếch</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiệm Ăn Con Ếch</title>
 
 <style>
 body{
   margin:0;
   font-family:system-ui,sans-serif;
-  background:#f2f4f7;
+  background:#eef2f7;
 }
 header{
-  background:#1f7ae0;
+  background:#2563eb;
   color:white;
-  padding:12px;
-  text-align:center;
-  font-size:20px;
-  font-weight:bold;
-}
-.container{
-  padding:10px;
-}
-.panel{
-  background:white;
-  padding:12px;
-  border-radius:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-  margin-bottom:12px;
-}
-
-/* TABLE */
-#tablesGrid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-}
-.table{
-  padding:22px;
-  border-radius:12px;
-  text-align:center;
-  font-size:18px;
-  font-weight:700;
-  cursor:pointer;
-}
-.table.empty{background:#d9d9d9;}
-.table.busy{background:#ffd54f;}
-.table.staff{background:#9e9e9e;color:white;}
-.table.active{outline:4px solid #1f7ae0;}
-
-/* PRODUCTS */
-.product{
+  padding:14px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:10px;
-  border-bottom:1px solid #eee;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
 }
-.product button{
-  width:40px;
-  height:40px;
-  font-size:20px;
+header h2{margin:0}
+
+header input{
+  padding:6px 8px;
+  border-radius:6px;
+  border:none;
+  outline:none;
+}
+header button{
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:white;
+  color:#2563eb;
+  font-weight:600;
 }
 
-/* CART */
-.cart-item{
+.container{
+  display:none;
+  grid-template-columns:300px 1fr 320px;
+  gap:12px;
+  padding:12px;
+  height:calc(100vh - 70px);
+  box-sizing:border-box;
+}
+.panel{
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+  display:flex;
+  flex-direction:column;
+}
+
+.panel h3{
+  margin:0 0 10px 0;
+  border-bottom:1px solid #ddd;
+  padding-bottom:6px;
+}
+
+/* Bàn */
+#tablesGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+.table{
+  padding:14px;
+  border-radius:10px;
+  text-align:center;
+  font-weight:600;
+  cursor:pointer;
+  transition:.15s;
+}
+.table.empty{ background:#e5e7eb; }
+.table.busy{ background:#fde68a; }
+.table.staff{ background:#9ca3af;color:white; }
+.table.active{ outline:3px solid #2563eb; }
+
+/* Sản phẩm */
+#productsList div{
   display:flex;
   justify-content:space-between;
+  align-items:center;
   padding:6px 0;
-  font-size:16px;
+  border-bottom:1px dashed #ddd;
 }
-
-button, select, input{
-  width:100%;
-  padding:12px;
-  font-size:16px;
-  margin-top:6px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-
-.primary{
-  background:#1f7ae0;
-  color:white;
+#productsList button{
+  padding:4px 10px;
   border:none;
-}
-.warning{
-  background:#ff5252;
+  border-radius:6px;
+  background:#2563eb;
   color:white;
-  border:none;
-}
-.secondary{
-  background:#607d8b;
-  color:white;
-  border:none;
-}
-
-/* HISTORY SCREEN */
-#historyScreen{
-  display:none;
-}
-.day-item{
-  padding:10px;
-  border-bottom:1px solid #eee;
   cursor:pointer;
 }
-.day-item b{
-  color:#1f7ae0;
+
+/* Giỏ hàng */
+#cartList div{
+  display:flex;
+  justify-content:space-between;
+  padding:4px 0;
+}
+.cart-footer{
+  margin-top:auto;
+}
+.cart-footer button{
+  width:100%;
+  margin-top:6px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+#btnPay{
+  background:#22c55e;
+  color:white;
+}
+#btnClear{
+  background:#ef4444;
+  color:white;
 }
 </style>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -117,95 +130,65 @@ button, select, input{
 
 <body>
 
-<header>POS – Tiệm Ăn Con Ếch</header>
+<header>
+  <h2>Tiệm Ăn Con Ếch</h2>
+  <div>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Mật khẩu">
+    <button id="btnLogin">Đăng nhập</button>
+    <button id="btnSignup">Tạo user</button>
+    <button id="btnLogout">Đăng xuất</button>
+  </div>
+</header>
 
-<!-- MAIN POS -->
-<div id="posScreen" class="container">
+<div class="container">
 
+  <!-- BÀN -->
   <div class="panel">
     <h3>Bàn</h3>
     <div id="tablesGrid"></div>
   </div>
 
+  <!-- SẢN PHẨM -->
   <div class="panel">
     <h3>Sản phẩm</h3>
-    <div id="productsList"></div>
+    <div id="productsList" style="flex:1;overflow:auto"></div>
+
+    <hr>
+    <input id="pName" placeholder="Tên sản phẩm">
+    <input id="pPrice" type="number" placeholder="Giá">
+    <button id="btnAddProduct">Thêm sản phẩm</button>
   </div>
 
+  <!-- GIỎ -->
   <div class="panel">
     <h3>Giỏ hàng</h3>
-    <div id="cartList"></div>
-    <p>Tổng: <b id="totalAmount">0</b> VNĐ</p>
+    <div id="cartList" style="flex:1;overflow:auto"></div>
 
-    <select id="paymentMethod">
-      <option value="cash">Tiền mặt</option>
-      <option value="bank">Chuyển khoản</option>
-    </select>
-
-    <button id="btnPay" class="primary">Thanh toán</button>
-    <button id="btnClear" class="warning">Xóa giỏ</button>
-  </div>
-
-  <div class="panel">
-    <button id="btnViewHistory" class="secondary">Xem lịch sử doanh thu</button>
-  </div>
-
-</div>
-
-<!-- HISTORY -->
-<div id="historyScreen" class="container">
-
-  <div class="panel">
-    <button id="btnBack" class="secondary">← Quay lại POS</button>
-    <h3>Lịch sử doanh thu theo ngày</h3>
-    <div id="historyList"></div>
-  </div>
-
-  <div class="panel" id="historyDetail" style="display:none;">
-    <h3>Chi tiết ngày: <span id="detailDate"></span></h3>
-    <p>Tổng doanh thu: <b id="detailTotal">0</b></p>
-    <p>Tiền mặt: <b id="detailCash">0</b></p>
-    <p>Chuyển khoản: <b id="detailBank">0</b></p>
-    <h4>Số lượng món:</h4>
-    <div id="detailProducts"></div>
+    <div class="cart-footer">
+      <p>Tổng: <b id="totalAmount">0</b> VNĐ</p>
+      <select id="paymentMethod">
+        <option value="cash">Tiền mặt</option>
+        <option value="bank">Chuyển khoản</option>
+      </select>
+      <button id="btnPay">Thanh toán</button>
+      <button id="btnClear">Xóa giỏ</button>
+    </div>
   </div>
 
 </div>
 <script>
-/* ================= FIREBASE ================= */
+/* ===== Firebase ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyC-AaAzc1qOsRjs1Pa3IrHKRtT4ID2incI",
   authDomain: "pos-quocanh.firebaseapp.com",
   projectId: "pos-quocanh",
 };
 firebase.initializeApp(firebaseConfig);
-
+const auth = firebase.auth();
 const db = firebase.firestore();
-const storeId = "demo-store";
-/* ================= DOM ELEMENTS ================= */
-const productsList = document.getElementById("productsList");
-const cartList = document.getElementById("cartList");
-const totalAmount = document.getElementById("totalAmount");
-const paymentMethod = document.getElementById("paymentMethod");
 
-const btnPay = document.getElementById("btnPay");
-const btnClear = document.getElementById("btnClear");
-const btnViewHistory = document.getElementById("btnViewHistory");
-const btnBack = document.getElementById("btnBack");
-
-const posScreen = document.getElementById("posScreen");
-const historyScreen = document.getElementById("historyScreen");
-const historyList = document.getElementById("historyList");
-
-const historyDetail = document.getElementById("historyDetail");
-const detailDate = document.getElementById("detailDate");
-const detailTotal = document.getElementById("detailTotal");
-const detailCash = document.getElementById("detailCash");
-const detailBank = document.getElementById("detailBank");
-const detailProducts = document.getElementById("detailProducts");
-
-
-/* ================= TABLES ================= */
+/* ===== Tables ===== */
 const tables = [
   {id:1,name:"C1",type:"normal",status:"empty"},
   {id:2,name:"C2",type:"normal",status:"empty"},
@@ -217,19 +200,20 @@ const tables = [
   {id:8,name:"C8",type:"normal",status:"empty"},
   {id:9,name:"T1",type:"normal",status:"empty"},
   {id:10,name:"T2",type:"normal",status:"empty"},
-  {id:99,name:"Nhân viên",type:"staff",status:"empty"},
+  {id:99,name:"Nhân viên ăn",type:"staff",status:"empty"},
 ];
-
-let currentTable = null;
-const tablesGrid = document.getElementById("tablesGrid");
+let currentTable=null;
+const tablesGrid=document.getElementById("tablesGrid");
 
 function renderTables(){
   tablesGrid.innerHTML="";
   tables.forEach(t=>{
     const div=document.createElement("div");
     div.className="table";
+
     if(t.type==="staff") div.classList.add("staff");
     else div.classList.add(t.status==="empty"?"empty":"busy");
+
     div.textContent=t.name;
 
     div.onclick=()=>{
@@ -237,15 +221,46 @@ function renderTables(){
       document.querySelectorAll(".table").forEach(x=>x.classList.remove("active"));
       div.classList.add("active");
     };
+
     tablesGrid.appendChild(div);
   });
 }
 renderTables();
 
-/* ================= PRODUCTS ================= */
-const productsRef = db.collection("stores").doc(storeId).collection("products");
-let products=[];
+/* ===== Auth ===== */
+btnSignup.onclick=async()=>{
+  await auth.createUserWithEmailAndPassword(email.value,password.value);
+  alert("Tạo user xong");
+};
+btnLogin.onclick=async()=>{
+  await auth.signInWithEmailAndPassword(email.value,password.value);
+};
+btnLogout.onclick=()=>auth.signOut();
 
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    document.querySelector(".container").style.display="grid";
+
+    const ref=db.collection("users").doc(user.uid);
+    const snap=await ref.get();
+    if(!snap.exists){
+      let role="staff";
+      if(user.email==="tiemanconech@admin.local") role="owner";
+      await ref.set({
+        email:user.email,
+        role,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    alert("Đăng nhập thành công: "+user.email);
+  }else{
+    document.querySelector(".container").style.display="none";
+  }
+});
+/* ===== Products ===== */
+const storeId="demo-store";
+const productsRef=db.collection("stores").doc(storeId).collection("products");
+let products=[];
 productsRef.onSnapshot(snap=>{
   products=[];
   snap.forEach(d=>products.push({id:d.id,...d.data()}));
@@ -256,20 +271,26 @@ function renderProducts(){
   productsList.innerHTML="";
   products.forEach(p=>{
     const div=document.createElement("div");
-    div.className="product";
-    div.innerHTML=`
-      <span>${p.name} - ${p.price}đ</span>
-      <button onclick="addToCart('${p.id}')">+</button>
-    `;
+    div.innerHTML=`${p.name} - ${p.price} VNĐ 
+    <button onclick="addToCart('${p.id}')">+</button>`;
     productsList.appendChild(div);
   });
 }
 
-/* ================= CART ================= */
+btnAddProduct.onclick=async()=>{
+  const name=pName.value;
+  const price=parseInt(pPrice.value);
+  const id=name.toLowerCase().replace(/\s+/g,"-");
+  await productsRef.doc(id).set({name,price});
+  alert("Đã thêm sản phẩm");
+};
+
+/* ===== Cart ===== */
 let cart=[];
 
 function addToCart(id){
   if(!currentTable) return alert("Chọn bàn trước");
+
   const p=products.find(x=>x.id===id);
   let item=cart.find(x=>x.id===id);
   if(item) item.qty++;
@@ -279,6 +300,7 @@ function addToCart(id){
     currentTable.status="busy";
     renderTables();
   }
+
   renderCart();
 }
 
@@ -288,11 +310,10 @@ function renderCart(){
   cart.forEach(i=>{
     total+=i.price*i.qty;
     const div=document.createElement("div");
-    div.className="cart-item";
     div.textContent=`${i.name} x${i.qty}`;
     cartList.appendChild(div);
   });
-  totalAmount.textContent=total.toLocaleString();
+  totalAmount.textContent=total;
 }
 
 btnClear.onclick=()=>{
@@ -300,23 +321,22 @@ btnClear.onclick=()=>{
   renderCart();
 };
 
-/* ================= HISTORY HELPERS ================= */
-const ordersRef = db.collection("stores").doc(storeId).collection("orders");
-const dailyRef  = db.collection("stores").doc(storeId).collection("daily");
+/* ===== Thanh toán + lịch sử ngày ===== */
+const ordersRef=db.collection("stores").doc(storeId).collection("orders");
+const dailyRef=db.collection("stores").doc(storeId).collection("daily");
 
 function todayKey(){
   const d=new Date();
   return d.toISOString().slice(0,10);
 }
 
-/* ================= PAYMENT ================= */
 btnPay.onclick=async()=>{
   if(!currentTable) return alert("Chưa chọn bàn");
   if(cart.length===0) return alert("Giỏ trống");
 
-  // Nhân viên ăn: không tính doanh thu
+  // Bàn nhân viên ăn -> không ghi doanh thu
   if(currentTable.type==="staff"){
-    alert("Bàn nhân viên – không tính doanh thu");
+    alert("Bàn nhân viên ăn – không tính doanh thu");
     cart=[];
     renderCart();
     currentTable.status="empty";
@@ -324,36 +344,32 @@ btnPay.onclick=async()=>{
     return;
   }
 
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const payMethod = paymentMethod.value;
-  const dateKey = todayKey();
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const dateKey=todayKey();
 
   // Lưu order
   await ordersRef.add({
-    table: currentTable.name,
-    items: cart,
+    tableId:currentTable.id,
+    tableName:currentTable.name,
+    items:cart,
     total,
-    paymentMethod: payMethod,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    paymentMethod:paymentMethod.value,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // Update daily history
-  const dailyDoc = dailyRef.doc(dateKey);
+  // Cập nhật lịch sử ngày
+  const dailyDoc=dailyRef.doc(dateKey);
   await db.runTransaction(async(tx)=>{
-    const snap = await tx.get(dailyDoc);
-    let data = {
-      date: dateKey,
-      totalRevenue: 0,
-      cash: 0,
-      bank: 0,
-      products: {}
+    const snap=await tx.get(dailyDoc);
+    let data={
+      date:dateKey,
+      totalRevenue:0,
+      products:{}
     };
 
-    if(snap.exists) data = snap.data();
+    if(snap.exists) data=snap.data();
 
-    data.totalRevenue += total;
-    if(payMethod==="cash") data.cash += total;
-    if(payMethod==="bank") data.bank += total;
+    data.totalRevenue+=total;
 
     cart.forEach(i=>{
       if(!data.products[i.name]) data.products[i.name]=0;
@@ -363,55 +379,14 @@ btnPay.onclick=async()=>{
     tx.set(dailyDoc,data,{merge:true});
   });
 
-  alert("Thanh toán xong cho bàn " + currentTable.name);
+  alert("Thanh toán xong cho "+currentTable.name);
 
   cart=[];
   renderCart();
   currentTable.status="empty";
   renderTables();
 };
-
-/* ================= HISTORY VIEW ================= */
-btnViewHistory.onclick=()=>{
-  posScreen.style.display="none";
-  historyScreen.style.display="block";
-  loadHistory();
-};
-
-btnBack.onclick=()=>{
-  posScreen.style.display="block";
-  historyScreen.style.display="none";
-};
-
-function loadHistory(){
-  historyList.innerHTML="";
-  dailyRef.orderBy("date","desc").onSnapshot(snap=>{
-    historyList.innerHTML="";
-    snap.forEach(d=>{
-      const data=d.data();
-      const div=document.createElement("div");
-      div.className="day-item";
-      div.innerHTML=`<b>${data.date}</b> - ${data.totalRevenue.toLocaleString()} đ`;
-      div.onclick=()=>showHistoryDetail(data);
-      historyList.appendChild(div);
-    });
-  });
-}
-
-function showHistoryDetail(data){
-  historyDetail.style.display="block";
-  detailDate.textContent=data.date;
-  detailTotal.textContent=data.totalRevenue.toLocaleString();
-  detailCash.textContent=data.cash.toLocaleString();
-  detailBank.textContent=data.bank.toLocaleString();
-
-  detailProducts.innerHTML="";
-  for(let k in data.products){
-    const div=document.createElement("div");
-    div.textContent=`${k}: ${data.products[k]}`;
-    detailProducts.appendChild(div);
-  }
-}
 </script>
+
 </body>
 </html>
