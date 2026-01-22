@@ -179,90 +179,6 @@ button.secondary {
   }
 }
 
-const btnHistory = document.getElementById("btnHistory");
-const historyView = document.getElementById("historyView");
-const mainContainer = document.getElementById("mainView");
-const btnBack = document.getElementById("btnBack");
-
-btnHistory.onclick = () => {
-  mainContainer.classList.add("hidden");
-  historyView.classList.remove("hidden");
-  loadHistoryDays();
-};
-
-btnBack.onclick = () => {
-  historyView.classList.add("hidden");
-  mainContainer.classList.remove("hidden");
-};
-
-async function loadHistoryDays(){
-  const daysList = document.getElementById("daysList");
-  daysList.innerHTML = "Đang tải...";
-
-  const snap = await db.collection("stores")
-    .doc(storeId)
-    .collection("daily")
-    .orderBy("date","desc")
-    .limit(7)
-    .get();
-
-  daysList.innerHTML = "";
-
-  snap.forEach(doc=>{
-    const d = doc.data();
-    const btn = document.createElement("button");
-    btn.style.margin = "4px";
-    btn.textContent = d.date + " – " + formatMoney(d.totalRevenue) + " VNĐ";
-    btn.onclick = ()=> loadDayDetail(d.date);
-    daysList.appendChild(btn);
-  });
-}
-
-async function loadDayDetail(dateKey){
-  const detail = document.getElementById("dayDetail");
-  detail.innerHTML = "Đang tải chi tiết...";
-
-  const start = new Date(dateKey + "T00:00:00");
-  const end = new Date(dateKey + "T23:59:59");
-
-  const ordersSnap = await ordersRef
-    .where("createdAt", ">=", start)
-    .where("createdAt", "<=", end)
-    .get();
-
-  let totalDay = 0;
-  let productSummary = {};
-  let html = `<h4>Ngày ${dateKey}</h4>`;
-
-  ordersSnap.forEach(doc=>{
-    const o = doc.data();
-    totalDay += o.total;
-
-    o.items.forEach(i=>{
-      if(!productSummary[i.name]) productSummary[i.name]=0;
-      productSummary[i.name]+=i.qty;
-    });
-
-    html += `
-      <div class="panel">
-        <b>Bàn:</b> ${o.tableName || o.tableId} – ${formatMoney(o.total)} VNĐ
-      </div>
-    `;
-  });
-
-  html += `<hr/><h4>Tổng hợp món</h4><ul>`;
-  for(let k in productSummary){
-    html += `<li>${k}: ${productSummary[k]} phần</li>`;
-  }
-  html += `</ul>`;
-
-  html += `<div><b>Tổng doanh thu:</b> ${formatMoney(totalDay)} VNĐ</div>`;
-
-  detail.innerHTML = html;
-}
-
-
-
 </style>
   <!-- Firebase CDN (compat mode for simpler single-file example) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -813,6 +729,91 @@ function renderTables(){
 window.onload = () => {
   renderTables();
 };
+
+const btnHistory = document.getElementById("btnHistory");
+const historyView = document.getElementById("historyView");
+const mainContainer = document.getElementById("mainView");
+const btnBack = document.getElementById("btnBack");
+
+btnHistory.onclick = () => {
+  mainContainer.classList.add("hidden");
+  historyView.classList.remove("hidden");
+  loadHistoryDays();
+};
+
+btnBack.onclick = () => {
+  historyView.classList.add("hidden");
+  mainContainer.classList.remove("hidden");
+};
+
+async function loadHistoryDays(){
+  const daysList = document.getElementById("daysList");
+  daysList.innerHTML = "Đang tải...";
+
+  const snap = await db.collection("stores")
+    .doc(storeId)
+    .collection("daily")
+    .orderBy("date","desc")
+    .limit(7)
+    .get();
+
+  daysList.innerHTML = "";
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+    const btn = document.createElement("button");
+    btn.style.margin = "4px";
+    btn.textContent = d.date + " – " + formatMoney(d.totalRevenue) + " VNĐ";
+    btn.onclick = ()=> loadDayDetail(d.date);
+    daysList.appendChild(btn);
+  });
+}
+
+async function loadDayDetail(dateKey){
+  const detail = document.getElementById("dayDetail");
+  detail.innerHTML = "Đang tải chi tiết...";
+
+  const start = new Date(dateKey + "T00:00:00");
+  const end = new Date(dateKey + "T23:59:59");
+
+  const ordersSnap = await ordersRef
+    .where("createdAt", ">=", start)
+    .where("createdAt", "<=", end)
+    .get();
+
+  let totalDay = 0;
+  let productSummary = {};
+  let html = `<h4>Ngày ${dateKey}</h4>`;
+
+  ordersSnap.forEach(doc=>{
+    const o = doc.data();
+    totalDay += o.total;
+
+    o.items.forEach(i=>{
+      if(!productSummary[i.name]) productSummary[i.name]=0;
+      productSummary[i.name]+=i.qty;
+    });
+
+    html += `
+      <div class="panel">
+        <b>Bàn:</b> ${o.tableName || o.tableId} – ${formatMoney(o.total)} VNĐ
+      </div>
+    `;
+  });
+
+  html += `<hr/><h4>Tổng hợp món</h4><ul>`;
+  for(let k in productSummary){
+    html += `<li>${k}: ${productSummary[k]} phần</li>`;
+  }
+  html += `</ul>`;
+
+  html += `<div><b>Tổng doanh thu:</b> ${formatMoney(totalDay)} VNĐ</div>`;
+
+  detail.innerHTML = html;
+}
+
+
+
 
 
 </script>
