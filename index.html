@@ -431,13 +431,7 @@ auth.onAuthStateChanged(async (user) => {
   renderCart();
 }
 
-function renderCart(){
-  if(!currentTable){
-    cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
-    totalAmountEl.textContent = "0";
-    return;
-  }
-  function changeQty(id, delta){
+function changeQty(id, delta){
   if(!currentTable) return;
 
   const cart = carts[currentTable.id] || [];
@@ -451,6 +445,15 @@ function renderCart(){
     renderCart();
   }
 }
+
+
+function renderCart(){
+  if(!currentTable){
+    cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
+    totalAmountEl.textContent = "0";
+    return;
+  }
+  
 
   const cart = carts[currentTable.id] || [];
   cartList.innerHTML = "";
@@ -562,7 +565,7 @@ function renderCart(){
       <div style="margin-top:8px">
         <b>Items:</b>
         <ul>
-          ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.unitPrice)} each</li>`).join('')}
+          ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.price)} each</li>`).join('')}
         </ul>
       </div>
     `;
@@ -582,7 +585,7 @@ function renderCart(){
         <div>${order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : ''}</div>
         <hr/>
         <ul>
-          ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.unitPrice)} VNĐ</li>`).join('')}
+          ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.price)} VNĐ</li>`).join('')}
         </ul>
         <hr/>
         <div><b>Tổng: ${formatMoney(order.total)} VNĐ</b></div>
