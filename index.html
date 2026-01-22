@@ -467,7 +467,7 @@ auth.onAuthStateChanged(async (user) => {
   };
 
   // ========== CART logic ==========
-  let carts = {};
+ 
 
  
   function addToCart(prod) {
@@ -503,8 +503,8 @@ function changeQty(id, delta){
   }
 }
 
-let currentTable = null;
-let carts = {};
+
+
 
 
 function renderCart(){
@@ -681,6 +681,8 @@ function renderCart(){
     }
   }
   */
+let currentTable = null;
+let carts = {};
 
 const tables = [
   {id:1,name:"C1",type:"normal",status:"empty", x:20, y:20},
@@ -700,11 +702,9 @@ const tables = [
   {id:99,name:"Nhân viên",type:"staff",status:"empty", x:20, y:330},
 ];
 
-const tablesGrid = document.getElementById("tablesGrid");
 
 
-let currentTable = null;
-let carts = {};
+
 const tablesGrid = document.getElementById("tablesGrid");
 
 function renderTables(){
@@ -817,8 +817,7 @@ async function loadDayDetail(dateKey){
 window.onload = () => {
   renderTables();
 }; 
-   renderTables();
-   renderCart();
+ 
 </script>
 </body>
 </html>
