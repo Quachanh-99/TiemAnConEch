@@ -8,121 +8,44 @@
 body{
   margin:0;
   font-family:system-ui,sans-serif;
-  background:#eef2f7;
+  background:#f2f4f7;
 }
 header{
-  background:#2563eb;
+  background:#1f7ae0;
   color:white;
-  padding:14px 20px;
+  padding:12px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  box-shadow:0 2px 6px rgba(0,0,0,.2);
 }
-header h2{margin:0}
-
-header input{
-  padding:6px 8px;
-  border-radius:6px;
-  border:none;
-  outline:none;
-}
-header button{
-  padding:6px 10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  background:white;
-  color:#2563eb;
-  font-weight:600;
-}
-
 .container{
-  display:none;
-  grid-template-columns:300px 1fr 320px;
+  display:flex;
   gap:12px;
   padding:12px;
-  height:calc(100vh - 70px);
-  box-sizing:border-box;
+  flex-wrap:wrap;
 }
 .panel{
   background:white;
-  border-radius:12px;
   padding:12px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);
-  display:flex;
-  flex-direction:column;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
+.products{flex:2}
+.cart{flex:1;min-width:280px}
 
-.panel h3{
-  margin:0 0 10px 0;
-  border-bottom:1px solid #ddd;
-  padding-bottom:6px;
-}
-
-/* Bàn */
-#tablesGrid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-}
+/* bàn */
 .table{
-  padding:14px;
+  padding:12px;
   border-radius:10px;
   text-align:center;
-  font-weight:600;
-  cursor:pointer;
-  transition:.15s;
-}
-.table.empty{ background:#e5e7eb; }
-.table.busy{ background:#fde68a; }
-.table.staff{ background:#9ca3af;color:white; }
-.table.active{ outline:3px solid #2563eb; }
-
-/* Sản phẩm */
-#productsList div{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:6px 0;
-  border-bottom:1px dashed #ddd;
-}
-#productsList button{
-  padding:4px 10px;
-  border:none;
-  border-radius:6px;
-  background:#2563eb;
-  color:white;
-  cursor:pointer;
-}
-
-/* Giỏ hàng */
-#cartList div{
-  display:flex;
-  justify-content:space-between;
-  padding:4px 0;
-}
-.cart-footer{
-  margin-top:auto;
-}
-.cart-footer button{
-  width:100%;
-  margin-top:6px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
+  background:#ddd;
   font-weight:600;
   cursor:pointer;
 }
-#btnPay{
-  background:#22c55e;
-  color:white;
-}
-#btnClear{
-  background:#ef4444;
-  color:white;
-}
+.table.active{background:#ffd54f;}
+.table.staff{background:#b0b0b0;}
 </style>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -146,37 +69,34 @@ header button{
   <!-- BÀN -->
   <div class="panel">
     <h3>Bàn</h3>
-    <div id="tablesGrid"></div>
+    <div id="tablesGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
   </div>
 
   <!-- SẢN PHẨM -->
-  <div class="panel">
+  <div class="panel products">
     <h3>Sản phẩm</h3>
-    <div id="productsList" style="flex:1;overflow:auto"></div>
-
+    <div id="productsList"></div>
     <hr>
-    <input id="pName" placeholder="Tên sản phẩm">
+    <input id="pName" placeholder="Tên">
     <input id="pPrice" type="number" placeholder="Giá">
     <button id="btnAddProduct">Thêm sản phẩm</button>
   </div>
 
   <!-- GIỎ -->
-  <div class="panel">
+  <div class="panel cart">
     <h3>Giỏ hàng</h3>
-    <div id="cartList" style="flex:1;overflow:auto"></div>
-
-    <div class="cart-footer">
-      <p>Tổng: <b id="totalAmount">0</b> VNĐ</p>
-      <select id="paymentMethod">
-        <option value="cash">Tiền mặt</option>
-        <option value="bank">Chuyển khoản</option>
-      </select>
-      <button id="btnPay">Thanh toán</button>
-      <button id="btnClear">Xóa giỏ</button>
-    </div>
+    <div id="cartList"></div>
+    <p>Tổng: <b id="totalAmount">0</b> VNĐ</p>
+    <select id="paymentMethod">
+      <option value="cash">Tiền mặt</option>
+      <option value="bank">Chuyển khoản</option>
+    </select>
+    <button id="btnPay">Thanh toán</button>
+    <button id="btnClear">Xóa giỏ</button>
   </div>
 
 </div>
+
 <script>
 /* ===== Firebase ===== */
 const firebaseConfig = {
@@ -190,19 +110,14 @@ const db = firebase.firestore();
 
 /* ===== Tables ===== */
 const tables = [
-  {id:1,name:"C1",type:"normal",status:"empty"},
-  {id:2,name:"C2",type:"normal",status:"empty"},
-  {id:3,name:"C3",type:"normal",status:"empty"},
-  {id:4,name:"C4",type:"normal",status:"empty"},
-  {id:5,name:"C5",type:"normal",status:"empty"},
-  {id:6,name:"C6",type:"normal",status:"empty"},
-  {id:7,name:"C7",type:"normal",status:"empty"},
-  {id:8,name:"C8",type:"normal",status:"empty"},
-  {id:9,name:"T1",type:"normal",status:"empty"},
-  {id:10,name:"T2",type:"normal",status:"empty"},
-  {id:99,name:"Nhân viên ăn",type:"staff",status:"empty"},
+  {id:1,name:"Bàn 1",type:"normal"},
+  {id:2,name:"Bàn 2",type:"normal"},
+  {id:3,name:"Bàn 3",type:"normal"},
+  {id:4,name:"Bàn 4",type:"normal"},
+  {id:99,name:"Bàn nhân viên",type:"staff"}
 ];
 let currentTable=null;
+
 const tablesGrid=document.getElementById("tablesGrid");
 
 function renderTables(){
@@ -210,18 +125,14 @@ function renderTables(){
   tables.forEach(t=>{
     const div=document.createElement("div");
     div.className="table";
-
     if(t.type==="staff") div.classList.add("staff");
-    else div.classList.add(t.status==="empty"?"empty":"busy");
-
     div.textContent=t.name;
-
     div.onclick=()=>{
       currentTable=t;
       document.querySelectorAll(".table").forEach(x=>x.classList.remove("active"));
       div.classList.add("active");
+      alert("Đang chọn: "+t.name);
     };
-
     tablesGrid.appendChild(div);
   });
 }
@@ -239,8 +150,6 @@ btnLogout.onclick=()=>auth.signOut();
 
 auth.onAuthStateChanged(async user=>{
   if(user){
-    document.querySelector(".container").style.display="grid";
-
     const ref=db.collection("users").doc(user.uid);
     const snap=await ref.get();
     if(!snap.exists){
@@ -253,10 +162,9 @@ auth.onAuthStateChanged(async user=>{
       });
     }
     alert("Đăng nhập thành công: "+user.email);
-  }else{
-    document.querySelector(".container").style.display="none";
   }
 });
+
 /* ===== Products ===== */
 const storeId="demo-store";
 const productsRef=db.collection("stores").doc(storeId).collection("products");
@@ -271,8 +179,10 @@ function renderProducts(){
   productsList.innerHTML="";
   products.forEach(p=>{
     const div=document.createElement("div");
-    div.innerHTML=`${p.name} - ${p.price} VNĐ 
-    <button onclick="addToCart('${p.id}')">+</button>`;
+    div.innerHTML=`
+      ${p.name} - ${p.price} VNĐ 
+      <button onclick="addToCart('${p.id}')">+</button>
+    `;
     productsList.appendChild(div);
   });
 }
@@ -289,18 +199,10 @@ btnAddProduct.onclick=async()=>{
 let cart=[];
 
 function addToCart(id){
-  if(!currentTable) return alert("Chọn bàn trước");
-
   const p=products.find(x=>x.id===id);
   let item=cart.find(x=>x.id===id);
   if(item) item.qty++;
   else cart.push({...p,qty:1});
-
-  if(currentTable.type==="normal"){
-    currentTable.status="busy";
-    renderTables();
-  }
-
   renderCart();
 }
 
@@ -321,70 +223,33 @@ btnClear.onclick=()=>{
   renderCart();
 };
 
-/* ===== Thanh toán + lịch sử ngày ===== */
+/* ===== Thanh toán ===== */
 const ordersRef=db.collection("stores").doc(storeId).collection("orders");
-const dailyRef=db.collection("stores").doc(storeId).collection("daily");
-
-function todayKey(){
-  const d=new Date();
-  return d.toISOString().slice(0,10);
-}
 
 btnPay.onclick=async()=>{
   if(!currentTable) return alert("Chưa chọn bàn");
   if(cart.length===0) return alert("Giỏ trống");
 
-  // Bàn nhân viên ăn -> không ghi doanh thu
+  // Bàn nhân viên thì không lưu
   if(currentTable.type==="staff"){
-    alert("Bàn nhân viên ăn – không tính doanh thu");
+    alert("Bàn nhân viên, không ghi doanh thu");
     cart=[];
     renderCart();
-    currentTable.status="empty";
-    renderTables();
     return;
   }
 
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const dateKey=todayKey();
-
-  // Lưu order
   await ordersRef.add({
     tableId:currentTable.id,
     tableName:currentTable.name,
     items:cart,
-    total,
+    total:cart.reduce((s,i)=>s+i.price*i.qty,0),
     paymentMethod:paymentMethod.value,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // Cập nhật lịch sử ngày
-  const dailyDoc=dailyRef.doc(dateKey);
-  await db.runTransaction(async(tx)=>{
-    const snap=await tx.get(dailyDoc);
-    let data={
-      date:dateKey,
-      totalRevenue:0,
-      products:{}
-    };
-
-    if(snap.exists) data=snap.data();
-
-    data.totalRevenue+=total;
-
-    cart.forEach(i=>{
-      if(!data.products[i.name]) data.products[i.name]=0;
-      data.products[i.name]+=i.qty;
-    });
-
-    tx.set(dailyDoc,data,{merge:true});
-  });
-
-  alert("Thanh toán xong cho "+currentTable.name);
-
+  alert("Thanh toán thành công cho "+currentTable.name);
   cart=[];
   renderCart();
-  currentTable.status="empty";
-  renderTables();
 };
 </script>
 
