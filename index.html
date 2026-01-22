@@ -113,6 +113,30 @@ button.secondary {
 .top-actions input {
   width: 140px;
 }
+.tables {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.table {
+  padding: 12px;
+  text-align: center;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.table.empty { background: #e5e7eb; }
+.table.busy { background: #fde68a; }
+.table.staff { background: #9ca3af; color: white; }
+
+.table.active {
+  outline: 3px solid #1f7ae0;
+}
+
 </style>
   <!-- Firebase CDN (compat mode for simpler single-file example) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -146,25 +170,25 @@ button.secondary {
   </header>
 
   <div class="container">
+    <div class="panel">
+     <h3>Bàn</h3>
+     <div id="tablesGrid" class="tables"></div>
+    </div>
 
-  <!-- BÀN -->
-  <div class="panel">
-    <h3>Bàn</h3>
-    <div id="tablesGrid"></div>
-  </div>
-
-  <!-- PRODUCTS -->
-  <div class="panel products">
-    ...
-  </div>
-
-  <!-- CART -->
-  <div class="panel cart">
-    ...
-  </div>
-
-</div>
-
+    <div class="panel products">
+      <h3>Products <span id="prodCount" class="badge">0</span></h3>
+      <div id="productsList">
+        <!-- products loaded here -->
+      </div>
+      <hr />
+      <div>
+        <h4>Quản lý sản phẩm (demo nhanh)</h4>
+        <input id="pName" placeholder="Tên sản phẩm" />
+        <input id="pPrice" placeholder="Giá (VNĐ)" type="number" />
+        <button id="btnAddProduct">Thêm/Update</button>
+        <div class="small">* Thêm ở store demo-store. Để xóa/ sửa dùng Firebase Console.</div>
+      </div>
+    </div>
 
     <div class="panel cart">
       <h3>Cart / Thanh toán</h3>
@@ -245,6 +269,14 @@ const db = firebase.firestore();
   const totalAmountEl = document.getElementById('totalAmount');
   const btnPay = document.getElementById('btnPay');
   const btnClear = document.getElementById('btnClear');
+  
+  btnClear.onclick = () => {
+  if(!currentTable) return;
+  carts[currentTable.id] = [];
+  renderCart();
+};
+
+
   const paymentMethod = document.getElementById('paymentMethod');
 
   const lastOrderEl = document.getElementById('lastOrder');
@@ -378,98 +410,147 @@ auth.onAuthStateChanged(async (user) => {
   };
 
   // ========== CART logic ==========
-  let cart = [];
+  let carts = {};
 
+ 
   function addToCart(prod) {
-    const idx = cart.findIndex(i=>i.id===prod.id);
-    if(idx>=0) cart[idx].qty++;
-    else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
-    renderCart();
+  if(!currentTable) return alert("Chọn bàn trước");
+
+  if(!carts[currentTable.id]) carts[currentTable.id] = [];
+
+  let cart = carts[currentTable.id];
+  const idx = cart.findIndex(i=>i.id===prod.id);
+  if(idx>=0) cart[idx].qty++;
+  else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
+
+  if(currentTable.type==="normal"){
+    currentTable.status="busy";
+    renderTables();
   }
 
-  function renderCart() {
-    cartList.innerHTML = '';
-    if(cart.length===0) cartList.innerHTML = '<div class="small">Giỏ trống</div>';
-    cart.forEach(item=>{
-      const div = document.createElement('div');
-      div.className = 'cart-item';
-      div.innerHTML = `
-        <div>${escapeHtml(item.name)} x${item.qty}</div>
-        <div>
-          <button data-id="${item.id}" class="dec">-</button>
-          <button data-id="${item.id}" class="inc">+</button>
-          <button data-id="${item.id}" class="rem">x</button>
-        </div>
-      `;
-      cartList.appendChild(div);
-    });
-    Array.from(document.getElementsByClassName('inc')).forEach(b=>{
-      b.onclick = ()=> { const id=b.getAttribute('data-id'); changeQty(id,1); };
-    });
-    Array.from(document.getElementsByClassName('dec')).forEach(b=>{
-      b.onclick = ()=> { const id=b.getAttribute('data-id'); changeQty(id,-1); };
-    });
-    Array.from(document.getElementsByClassName('rem')).forEach(b=>{
-      b.onclick = ()=> { const id=b.getAttribute('data-id'); removeItem(id); };
-    });
+  renderCart();
+}
 
-    const total = cart.reduce((s,i)=>s + i.price * i.qty, 0);
-    totalAmountEl.textContent = formatMoney(total);
+function renderCart(){
+  if(!currentTable){
+    cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
+    totalAmountEl.textContent = "0";
+    return;
   }
+  function changeQty(id, delta){
+  if(!currentTable) return;
 
-  function changeQty(id, delta) {
-    const idx = cart.findIndex(i=>i.id===id);
-    if(idx>=0) {
-      cart[idx].qty += delta;
-      if(cart[idx].qty <= 0) cart.splice(idx,1);
-      renderCart();
+  const cart = carts[currentTable.id] || [];
+  const idx = cart.findIndex(i => i.id === id);
+
+  if(idx >= 0){
+    cart[idx].qty += delta;
+    if(cart[idx].qty <= 0){
+      cart.splice(idx, 1);
     }
-  }
-  function removeItem(id) {
-    cart = cart.filter(i => i.id !== id);
     renderCart();
   }
-  btnClear.onclick = ()=> { cart = []; renderCart(); };
+}
 
-  // ========== Orders: create + realtime last order ==========
+  const cart = carts[currentTable.id] || [];
+  cartList.innerHTML = "";
+  let total = 0;
+
+  if(cart.length === 0){
+    cartList.innerHTML = '<div class="small">Giỏ trống</div>';
+    totalAmountEl.textContent = "0";
+    return;
+  }
+
+  cart.forEach(i=>{
+    const row = document.createElement("div");
+    row.className = "cart-item";
+    row.innerHTML = `
+      <div>
+        <b>${escapeHtml(i.name)}</b><br/>
+        <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
+      </div>
+      <div>
+        <button onclick="changeQty('${i.id}',-1)">-</button>
+        <button onclick="changeQty('${i.id}',1)">+</button>
+      </div>
+    `;
+    cartList.appendChild(row);
+    total += i.price * i.qty;
+  });
+
+  totalAmountEl.textContent = formatMoney(total);
+}
+
+
+  
+   // ========== Orders: create + realtime last order ==========
   const ordersRef = db.collection('stores').doc(storeId).collection('orders');
 
-  btnPay.onclick = async () => {
-    if(cart.length === 0) return alert('Giỏ rỗng');
-    const user = auth.currentUser;
-    const order = {
-      items: cart.map(i=>({ productId: i.id, name: i.name, qty: i.qty, unitPrice: i.price })),
-      subtotal: cart.reduce((s,i)=>s + i.price*i.qty, 0),
-      total: cart.reduce((s,i)=>s + i.price*i.qty, 0),
-      status: 'paid',
-      createdBy: user ? user.uid : 'anonymous',
-      createdByEmail: user ? user.email : null,
-      paymentMethod: paymentMethod.value,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    try {
-      const docRef = await ordersRef.add(order);
-      cart = []; renderCart();
-      alert('Thanh toán thành công. Order id: ' + docRef.id);
-      // show last order live via listener below
-    } catch(e) {
-      alert('Thanh toán lỗi: ' + e.message);
-    }
-  };
-
-  // listen last order realtime
-  ordersRef.orderBy('createdAt','desc').limit(1)
-    .onSnapshot(snapshot => {
-      if(snapshot.empty) {
-        lastOrderEl.innerHTML = '<div class="small">Chưa có hóa đơn</div>';
-        btnPrintInvoice.classList.add('hidden');
-        return;
-      }
-      snapshot.forEach(doc=>{
-        const data = { id: doc.id, ...doc.data() };
-        renderLastOrder(data);
+  ordersRef
+  .orderBy("createdAt", "desc")
+  .limit(1)
+  .onSnapshot(snap => {
+    if(!snap.empty){
+      const doc = snap.docs[0];
+      renderLastOrder({
+        id: doc.id,
+        ...doc.data()
       });
+    }
+  });
+
+
+  btnPay.onclick = async () => {
+  if(!currentTable) return alert("Chưa chọn bàn");
+
+  const cart = carts[currentTable.id] || [];
+  if(cart.length===0) return alert("Giỏ rỗng");
+
+  // Bàn nhân viên
+  if(currentTable.type==="staff"){
+    alert("Bàn nhân viên ăn – không tính doanh thu");
+    carts[currentTable.id] = [];
+    currentTable.status = "empty";
+    renderTables();
+    renderCart();
+    return;
+  }
+
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const dateKey = new Date().toISOString().slice(0,10);
+
+  await ordersRef.add({
+    tableId: currentTable.id,
+    tableName: currentTable.name,
+    items: cart,
+    total,
+    paymentMethod: paymentMethod.value,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  const dailyRef = db.collection("stores").doc(storeId).collection("daily").doc(dateKey);
+  await db.runTransaction(async(tx)=>{
+    const snap = await tx.get(dailyRef);
+    let data = { date: dateKey, totalRevenue: 0, products: {} };
+    if(snap.exists) data = snap.data();
+
+    data.totalRevenue += total;
+    cart.forEach(i=>{
+      if(!data.products[i.name]) data.products[i.name] = 0;
+      data.products[i.name] += i.qty;
     });
+
+    tx.set(dailyRef, data, {merge:true});
+  });
+
+  alert("Thanh toán xong cho " + currentTable.name);
+
+  carts[currentTable.id] = [];
+  currentTable.status = "empty";
+  renderTables();
+  renderCart();
+};
 
   function renderLastOrder(order){
     const time = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : '—';
@@ -537,15 +618,47 @@ auth.onAuthStateChanged(async (user) => {
     }
   }
   */
+
 const tables = [
-  { id: 1, name: "Bàn 1", type: "normal" },
-  { id: 2, name: "Bàn 2", type: "normal" },
-  { id: 3, name: "Bàn 3", type: "normal" },
-  { id: 4, name: "Bàn 4", type: "normal" },
-  { id: 99, name: "Bàn nhân viên", type: "staff" } // không tính tiền
+  {id:1,name:"C1",type:"normal",status:"empty"},
+  {id:2,name:"C2",type:"normal",status:"empty"},
+  {id:3,name:"C3",type:"normal",status:"empty"},
+  {id:4,name:"C4",type:"normal",status:"empty"},
+  {id:5,name:"C5",type:"normal",status:"empty"},
+  {id:6,name:"C6",type:"normal",status:"empty"},
+  {id:7,name:"C7",type:"normal",status:"empty"},
+  {id:8,name:"C8",type:"normal",status:"empty"},
+  {id:9,name:"T1",type:"normal",status:"empty"},
+  {id:10,name:"T2",type:"normal",status:"empty"},
+  {id:99,name:"Nhân viên ăn",type:"staff",status:"empty"},
 ];
 
 let currentTable = null;
+const tablesGrid = document.getElementById("tablesGrid");
+
+function renderTables(){
+  tablesGrid.innerHTML="";
+  tables.forEach(t=>{
+    const div=document.createElement("div");
+    div.className="table";
+
+    if(t.type==="staff") div.classList.add("staff");
+    else div.classList.add(t.status==="empty" ? "empty" : "busy");
+
+    div.textContent=t.name;
+
+    div.onclick=()=>{
+      currentTable=t;
+      document.querySelectorAll(".table").forEach(x=>x.classList.remove("active"));
+      div.classList.add("active");
+      renderCart();
+    };
+
+    tablesGrid.appendChild(div);
+  });
+}
+renderTables();
+
 
 </script>
 </body>
