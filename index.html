@@ -342,14 +342,18 @@ const tablesRef = db.collection("stores").doc(storeId).collection("tables");
   const btnPay = document.getElementById('btnPay');
   const btnClear = document.getElementById('btnClear');
   
-  btnClear.onclick = async () => {
+ btnClear.onclick = async () => {
   if(!currentTable) return;
-  await tablesRef.doc(String(currentTable.id)).update({
-    cart: cart,
+
+  await tablesRef.doc(String(currentTable.id)).set({
+    cart: [],
     status: "empty",
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  }, { merge: true });
+
+  alert("Đã xóa bill bàn " + currentTable.name);
 };
+
 
 
 
@@ -547,12 +551,13 @@ auth.onAuthStateChanged(async (user) => {
   if(idx>=0) cart[idx].qty++;
   else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
 
-  await tablesRef.doc(String(currentTable.id)).update({
+  await tablesRef.doc(String(currentTable.id)).set({
     cart: cart,
     status: "busy",
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  }, { merge: true });
 }
+
 
 
 async function changeQty(id, delta){
@@ -566,7 +571,7 @@ async function changeQty(id, delta){
     if(cart[idx].qty <= 0) cart.splice(idx,1);
 
     await tablesRef.doc(String(currentTable.id)).update({
-  cart: newCart,
+  cart: cart,
   status: "busy",
   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
 });
@@ -689,11 +694,12 @@ function renderCart(){
 
   alert("Thanh toán xong cho " + currentTable.name);
 
-  await tablesRef.doc(String(currentTable.id)).update({
+  await tablesRef.doc(String(currentTable.id)).set({
   cart: [],
   status: "empty",
   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-});
+}, { merge: true });
+
 
 };
   function listenTables(){
