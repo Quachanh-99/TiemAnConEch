@@ -345,7 +345,7 @@ const tablesRef = db.collection("stores").doc(storeId).collection("tables");
   btnClear.onclick = async () => {
   if(!currentTable) return;
   await tablesRef.doc(String(currentTable.id)).update({
-    cart: [],
+    cart: cart,
     status: "empty",
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
@@ -703,9 +703,10 @@ function renderCart(){
       const t = tables.find(x => String(x.id) === doc.id);
 
       if(t){
-        t.status = data.status;
-        t.cart = data.cart || []  (t.cart.length > 0 ? "busy" : "empty");
+ 	 t.cart = data.cart || [];
+ 	 t.status = data.status || (t.cart.length > 0 ? "busy" : "empty");
       }
+
     });
 
     // vẽ lại bàn
@@ -846,15 +847,19 @@ function renderTables(){
 
     div.textContent=t.name;
 
-    div.onclick = async () => {
-  const snap = await tablesRef.doc(String(t.id)).get();
-  const data = snap.data();
+    div.onclick = () => {
+  if(!t) return;
   if(!t.cart) t.cart = [];
-  currentTable = {
-    ...t,
-    cart: data.cart || [],
-    status: data.status
-  };
+
+  currentTable = t;
+
+  document.getElementById("tableScreen").classList.add("hidden");
+  document.getElementById("orderScreen").classList.remove("hidden");
+
+  renderTables();
+  renderCart();
+};
+
 
   document.getElementById("tableScreen").classList.add("hidden");
   document.getElementById("orderScreen").classList.remove("hidden");
