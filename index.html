@@ -289,8 +289,7 @@ button.secondary {
 <script>
   // ====== GLOBAL STATE ======
   let currentTable = null;
-  let carts = {};
-
+ 
   // ====== CẬP NHẬT firebaseConfig Ở ĐÂY ======
  // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -310,8 +309,9 @@ const firebaseConfig = {
  firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-  const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
+const ordersRef = db.collection('stores').doc(storeId).collection('orders');
+const tablesRef = db.collection("stores").doc(storeId).collection("tables");
+const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
   document.getElementById('storeIdDisplay').textContent = storeId;
 
   // enable offline persistence (indexedDB)
@@ -341,12 +341,15 @@ const db = firebase.firestore();
   const btnPay = document.getElementById('btnPay');
   const btnClear = document.getElementById('btnClear');
   
-  btnClear.onclick = () => {
+  btnClear.onclick = async () => {
   if(!currentTable) return;
-  carts[currentTable.id] = [];
-  saveCarts();
-  renderCart();
+  await tablesRef.doc(String(currentTable.id)).update({
+    cart: [],
+    status: "empty",
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 };
+
 
 
   const paymentMethod = document.getElementById('paymentMethod');
@@ -436,16 +439,7 @@ auth.onAuthStateChanged(async (user) => {
   }, err => {
     console.error('products listener error', err);
   });
-  function saveCarts() {
-    localStorage.setItem("pos_carts", JSON.stringify(carts));
-    }
-
-  function loadCarts() {
-    const data = localStorage.getItem("pos_carts");
-    if (data) {
-      carts = JSON.parse(data);
-      }
-  }
+  
 
   function renderProducts(){
     productsList.innerHTML = '';
@@ -544,39 +538,40 @@ auth.onAuthStateChanged(async (user) => {
   }
 
  
-  function addToCart(prod) {
+  async function addToCart(prod){
   if(!currentTable) return alert("Chọn bàn trước");
 
-  if(!carts[currentTable.id]) carts[currentTable.id] = [];
-
-  let cart = carts[currentTable.id];
+  let cart = currentTable.cart || [];
   const idx = cart.findIndex(i=>i.id===prod.id);
   if(idx>=0) cart[idx].qty++;
   else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
-  saveCarts();  
-  if(currentTable.type==="normal"){
-    currentTable.status="busy";
-    renderTables();
-  }
 
-  renderCart();
+  await tablesRef.doc(String(currentTable.id)).update({
+    cart: cart,
+    status: "busy",
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
-function changeQty(id, delta){
+
+async function changeQty(id, delta){
   if(!currentTable) return;
 
-  const cart = carts[currentTable.id] || [];
-  const idx = cart.findIndex(i => i.id === id);
+  let cart = currentTable.cart || [];
+  const idx = cart.findIndex(i=>i.id===id);
 
-  if(idx >= 0){
+  if(idx>=0){
     cart[idx].qty += delta;
-    if(cart[idx].qty <= 0){
-      cart.splice(idx, 1);
-    }
-      saveCarts();    
-      renderCart();
+    if(cart[idx].qty <= 0) cart.splice(idx,1);
+
+    await tablesRef.doc(String(currentTable.id)).update({
+      cart: cart,
+      status: cart.length ? "busy" : "empty",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
   }
 }
+
 
 
 
@@ -584,16 +579,19 @@ function changeQty(id, delta){
 
 function renderCart(){
   document.getElementById("tableNumberDisplay").innerText =
-  currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
+    currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
 
   if(!currentTable){
     cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
     totalAmountEl.textContent = "0";
     return;
   }
+
+  
   
 
-  const cart = carts[currentTable.id] || [];
+  const cart = currentTable.cart || [];
+
   cartList.innerHTML = "";
   let total = 0;
 
@@ -626,8 +624,7 @@ function renderCart(){
 
   
    // ========== Orders: create + realtime last order ==========
-  const ordersRef = db.collection('stores').doc(storeId).collection('orders');
-
+  
   ordersRef
   .orderBy("createdAt", "desc")
   .limit(1)
@@ -645,17 +642,14 @@ function renderCart(){
   btnPay.onclick = async () => {
   if(!currentTable) return alert("Chưa chọn bàn");
 
-  const cart = carts[currentTable.id] || [];
+  const cart = currentTable.cart || [];
+
   if(cart.length===0) return alert("Bàn trống");
 
   // Bàn nhân viên
   if(currentTable.type==="staff"){
     alert("Bàn nhân viên ăn – không tính doanh thu");
-    carts[currentTable.id] = [];
-    saveCarts();
-    currentTable.status = "empty";
-    renderTables();
-    renderCart();
+    
     return;
   }
 
@@ -690,11 +684,38 @@ function renderCart(){
 
   alert("Thanh toán xong cho " + currentTable.name);
 
-  carts[currentTable.id] = [];
-  currentTable.status = "empty";
-  renderTables();
-  renderCart();
+  await tablesRef.doc(String(currentTable.id)).update({
+  cart: [],
+  status: "empty",
+  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+
 };
+  function listenTables(){
+  tablesRef.onSnapshot(snap => {
+    snap.forEach(doc => {
+      const data = doc.data();
+      const t = tables.find(x => String(x.id) === doc.id);
+
+      if(t){
+        t.status = data.status;
+        t.cart = data.cart || [];
+      }
+    });
+
+    // vẽ lại bàn
+    renderTables();
+
+    // nếu đang chọn 1 bàn thì cập nhật cart của bàn đó
+    if(currentTable){
+      const match = tables.find(x => x.id === currentTable.id);
+      if(match){
+        currentTable = match;
+        renderCart();
+      }
+    }
+  });
+}
 
   function renderLastOrder(order){
     const time = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : '—';
@@ -782,6 +803,21 @@ const tables = [
   {id:99,name:"Nhân viên",type:"staff",status:"empty", x:20, y:330},
   {id:100, name:"Mang về", type:"takeaway", status:"empty", x:120, y:330},
 ];
+ async function initTablesToFirestore(){
+  const snap = await tablesRef.get();
+  if(!snap.empty) return;
+
+  for(const t of tables){
+    await tablesRef.doc(String(t.id)).set({
+      name: t.name,
+      type: t.type,
+      status: "empty",
+      cart: [],
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+  console.log("Đã init tables lên Firestore");
+  }
 
 
 
@@ -805,15 +841,23 @@ function renderTables(){
 
     div.textContent=t.name;
 
-    div.onclick = () => {
-      currentTable = t;
+    div.onclick = async () => {
+  const snap = await tablesRef.doc(String(t.id)).get();
+  const data = snap.data();
 
-      document.getElementById("tableScreen").classList.add("hidden");
-      document.getElementById("orderScreen").classList.remove("hidden");
+  currentTable = {
+    ...t,
+    cart: data.cart || [],
+    status: data.status
+  };
 
-      renderTables();
-      renderCart();
-    };
+  document.getElementById("tableScreen").classList.add("hidden");
+  document.getElementById("orderScreen").classList.remove("hidden");
+
+  renderTables();
+  renderCart();
+};
+
 
     tablesGrid.appendChild(div);
   });
@@ -921,12 +965,16 @@ function changeTable() {
   document.getElementById("tableNumberDisplay").innerText = "Bàn: --";
 }
 
+window.onload = async () => {
+  await initTablesToFirestore();
+  listenTables();
+};
 
-window.onload = () => {
-  loadCarts(); 
-  renderTables();
-  renderCart();
-}; 
+// window.onload = () => {
+//  loadCarts(); 
+//  renderTables();
+//  renderCart();
+// }; 
  
 </script>
 </body>
