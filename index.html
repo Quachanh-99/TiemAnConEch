@@ -344,6 +344,7 @@ const db = firebase.firestore();
   btnClear.onclick = () => {
   if(!currentTable) return;
   carts[currentTable.id] = [];
+  saveCarts();
   renderCart();
 };
 
@@ -435,6 +436,16 @@ auth.onAuthStateChanged(async (user) => {
   }, err => {
     console.error('products listener error', err);
   });
+  function saveCarts() {
+    localStorage.setItem("pos_carts", JSON.stringify(carts));
+    }
+
+  function loadCarts() {
+    const data = localStorage.getItem("pos_carts");
+    if (data) {
+      carts = JSON.parse(data);
+      }
+  }
 
   function renderProducts(){
     productsList.innerHTML = '';
@@ -542,7 +553,7 @@ auth.onAuthStateChanged(async (user) => {
   const idx = cart.findIndex(i=>i.id===prod.id);
   if(idx>=0) cart[idx].qty++;
   else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
-
+  saveCarts();  
   if(currentTable.type==="normal"){
     currentTable.status="busy";
     renderTables();
@@ -562,7 +573,8 @@ function changeQty(id, delta){
     if(cart[idx].qty <= 0){
       cart.splice(idx, 1);
     }
-    renderCart();
+      saveCarts();    
+      renderCart();
   }
 }
 
@@ -640,6 +652,7 @@ function renderCart(){
   if(currentTable.type==="staff"){
     alert("Bàn nhân viên ăn – không tính doanh thu");
     carts[currentTable.id] = [];
+    saveCarts();
     currentTable.status = "empty";
     renderTables();
     renderCart();
@@ -910,6 +923,7 @@ function changeTable() {
 
 
 window.onload = () => {
+  loadCarts(); 
   renderTables();
   renderCart();
 }; 
