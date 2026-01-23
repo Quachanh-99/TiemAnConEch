@@ -580,6 +580,9 @@ async function changeQty(id, delta){
 
 
 function renderCart(){
+  if(!currentTable) return;
+
+  if(!currentTable.cart) currentTable.cart = [];
   document.getElementById("tableNumberDisplay").innerText =
     currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
 
@@ -846,7 +849,7 @@ function renderTables(){
     div.onclick = async () => {
   const snap = await tablesRef.doc(String(t.id)).get();
   const data = snap.data();
-
+  if(!t.cart) t.cart = [];
   currentTable = {
     ...t,
     cart: data.cart || [],
