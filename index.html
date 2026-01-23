@@ -410,6 +410,7 @@ auth.onAuthStateChanged(async (user) => {
       window.currentUser = snap.data();
       
     }
+	console.log("USER ROLE:", window.currentUser.role);
     applyRoleUI();
   } else {
     authArea.classList.remove('hidden');
