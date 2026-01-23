@@ -412,6 +412,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 	console.log("USER ROLE:", window.currentUser.role);
     applyRoleUI();
+	renderProducts();
   } else {
     authArea.classList.remove('hidden');
     userArea.classList.add('hidden');
