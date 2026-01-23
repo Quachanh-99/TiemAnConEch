@@ -553,8 +553,10 @@ auth.onAuthStateChanged(async (user) => {
 	id: prod.id, 
 	name: prod.name, 
 	price: prod.price, 
-	qty: 1 });
-        note: ""   // ← note
+	qty: 1,
+	note: ""   // ← note
+});
+       
   await tablesRef.doc(String(currentTable.id)).set({
     cart: cart,
     status: "busy",
@@ -623,7 +625,6 @@ function renderCart(){
       <b>${escapeHtml(i.name)}</b><br/>
       <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
 
-      <!-- Ô ghi chú -->
       <div style="margin-top:4px">
         <input
           id="note-${i.id}"
@@ -649,11 +650,9 @@ function renderCart(){
   `;
 
   cartList.appendChild(row);
+  total += i.price * i.qty;
 });
 
-    cartList.appendChild(row);
-    total += i.price * i.qty;
-  });
 
   totalAmountEl.textContent = formatMoney(total);
 }
