@@ -549,8 +549,12 @@ auth.onAuthStateChanged(async (user) => {
   let cart = currentTable.cart || [];
   const idx = cart.findIndex(i=>i.id===prod.id);
   if(idx>=0) cart[idx].qty++;
-  else cart.push({ id: prod.id, name: prod.name, price: prod.price, qty: 1 });
-
+  else cart.push({ 
+	id: prod.id, 
+	name: prod.name, 
+	price: prod.price, 
+	qty: 1 });
+        note: ""   // ← note
   await tablesRef.doc(String(currentTable.id)).set({
     cart: cart,
     status: "busy",
@@ -611,18 +615,42 @@ function renderCart(){
   }
 
   cart.forEach(i=>{
-    const row = document.createElement("div");
-    row.className = "cart-item";
-    row.innerHTML = `
-      <div>
-        <b>${escapeHtml(i.name)}</b><br/>
-        <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
+  const row = document.createElement("div");
+  row.className = "cart-item";
+
+  row.innerHTML = `
+    <div style="flex:1">
+      <b>${escapeHtml(i.name)}</b><br/>
+      <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
+
+      <!-- Ô ghi chú -->
+      <div style="margin-top:4px">
+        <input
+          id="note-${i.id}"
+          type="text"
+          placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
+          value="${escapeHtml(i.note || "")}"
+          oninput="this.value = this.value.toUpperCase()"
+          style="font-weight:bold; width:100%;"
+        />
+        <button
+          onclick="saveNote('${i.id}')"
+          style="margin-top:4px; background:#16a34a"
+        >
+          ✔ Lưu ghi chú
+        </button>
       </div>
-      <div>
-        <button onclick="changeQty('${i.id}',-1)">-</button>
-        <button onclick="changeQty('${i.id}',1)">+</button>
-      </div>
-    `;
+    </div>
+
+    <div>
+      <button onclick="changeQty('${i.id}',-1)">-</button>
+      <button onclick="changeQty('${i.id}',1)">+</button>
+    </div>
+  `;
+
+  cartList.appendChild(row);
+});
+
     cartList.appendChild(row);
     total += i.price * i.qty;
   });
@@ -770,7 +798,13 @@ renderTables();
 	<div><b>Thời gian:</b> ${order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : ''}</div>
         <hr/>
         <ul>
-          ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.price)} VNĐ</li>`).join('')}
+         ${order.items.map(i=>`
+ 	 <li>
+ 	   ${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.price)} VNĐ
+ 	   ${i.note ? `<div><b>GHI CHÚ:</b> ${escapeHtml(i.note)}</div>` : ""}
+	  </li>
+	`).join('')}
+
         </ul>
         <hr/>
         <div><b>Tổng: ${formatMoney(order.total)} VNĐ</b></div>
@@ -999,11 +1033,26 @@ window.onload = async () => {
   listenTables();
 };
 
-// window.onload = () => {
-//  loadCarts(); 
-//  renderTables();
-//  renderCart();
-// }; 
+async function saveNote(productId){
+  if(!currentTable) return;
+
+  let cart = currentTable.cart || [];
+  const idx = cart.findIndex(i => i.id === productId);
+
+  if(idx < 0) return;
+
+  const input = document.getElementById("note-" + productId);
+  const note = input.value.trim().toUpperCase();
+
+  cart[idx].note = note;
+
+  await tablesRef.doc(String(currentTable.id)).update({
+    cart: cart,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Đã lưu ghi chú cho món: " + cart[idx].name);
+}
  
 </script>
 </body>
