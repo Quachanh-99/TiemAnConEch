@@ -408,8 +408,9 @@ auth.onAuthStateChanged(async (user) => {
       window.currentUser = { email: user.email, role: role };
     } else {
       window.currentUser = snap.data();
+      
     }
-
+    applyRoleUI();
   } else {
     authArea.classList.remove('hidden');
     userArea.classList.add('hidden');
@@ -468,6 +469,9 @@ auth.onAuthStateChanged(async (user) => {
   btnAddProduct.onclick = async () => {
     const name = pName.value.trim();
     const price = parseInt(pPrice.value||0);
+    if(!currentUser || currentUser.role !== "owner"){
+    return alert("Chỉ chủ quán mới được thêm sản phẩm");
+    }
     if(!name || !price) return alert('Nhập tên và giá');
     try {
       // create doc id from name slug for demo
@@ -482,6 +486,23 @@ auth.onAuthStateChanged(async (user) => {
 
   // ========== CART logic ==========
  
+  function applyRoleUI(){
+  	if(!window.currentUser) return;
+
+  	const isOwner = window.currentUser.role === "owner";
+
+  	// Khu quản lý sản phẩm
+  	const productAdmin = document.getElementById("productAdmin");
+  	if(productAdmin){
+    	productAdmin.style.display = isOwner ? "block" : "none";
+  	}
+
+  	// Nút lịch sử
+  	const btnHistory = document.getElementById("btnHistory");
+  	if(btnHistory){
+    	btnHistory.style.display = isOwner ? "inline-block" : "none";
+  	}
+  }
 
  
   function addToCart(prod) {
@@ -764,10 +785,14 @@ const orderScreen = document.getElementById("orderScreen");
 const btnBack = document.getElementById("btnBack");
 
 btnHistory.onclick = () => {
+  if(!currentUser || currentUser.role !== "owner"){
+    return alert("Bạn không có quyền xem lịch sử bán hàng");
+  }
   tableScreen.classList.add("hidden");
   orderScreen.classList.add("hidden");
   historyView.classList.remove("hidden");
   loadHistoryDays();
+  
 };
 
 btnBack.onclick = () => {
