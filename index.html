@@ -213,21 +213,17 @@ button.secondary {
     </div>
   </header>
 
- <div class="container" id="mainView">
+ <div class="container" id="tableScreen">
 
     <div class="panel">
      <h3>Bàn</h3>
      <div id="tablesGrid" class="tables"></div>
     </div>
 
-    <div class="panel products">
-      <h3>Products <span id="prodCount" class="badge">0</span></h3>
-      <div id="productsList">
-        <!-- products loaded here -->
-      </div>
+   
       <hr />
       <div>
-        <h4>Quản lý sản phẩm (demo nhanh)</h4>
+        <h4>Quản lý sản phẩm</h4>
         <input id="pName" placeholder="Tên sản phẩm" />
         <input id="pPrice" placeholder="Giá (VNĐ)" type="number" />
         <button id="btnAddProduct">Thêm/Update</button>
@@ -244,10 +240,19 @@ button.secondary {
     <button id="btnBack">⬅ Quay lại POS</button>
   </div>
 </div>
-
-
+     <div id="orderScreen" class="hidden">
+     
     <div class="panel cart">
       <h3>Cart / Thanh toán</h3>
+      <div id="tableNumberDisplay" style="
+          font-weight:bold;
+          font-size:18px;
+          margin-bottom:6px;
+       ">
+          Bàn: --
+      </div>
+
+
       <div id="cartList"></div>
       <div style="margin-top:10px">
         <div class="small">Tổng: <b id="totalAmount">0</b> VNĐ</div>
@@ -257,11 +262,17 @@ button.secondary {
             <option value="momo">Ví điện tử</option>
             <option value="card">Thẻ</option>
           </select>
+          <button onclick="changeTable()">Đổi bàn</button>
           <button id="btnPay">Thanh toán</button>
-          <button id="btnClear">Xóa giỏ</button>
+          <button id="btnClear">Xóa bill</button>
         </div>
       </div>
-
+      <div class="panel products">
+      <h3>Products <span id="prodCount" class="badge">0</span></h3>
+      <div id="productsList">
+        <!-- products loaded here -->
+      </div>
+      </div>
       <hr />
       <h4>Hóa đơn mới nhất</h4>
       <div id="lastOrder"></div>
@@ -511,6 +522,9 @@ function changeQty(id, delta){
 
 
 function renderCart(){
+  document.getElementById("tableNumberDisplay").innerText =
+  currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
+
   if(!currentTable){
     cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
     totalAmountEl.textContent = "0";
@@ -571,7 +585,7 @@ function renderCart(){
   if(!currentTable) return alert("Chưa chọn bàn");
 
   const cart = carts[currentTable.id] || [];
-  if(cart.length===0) return alert("Giỏ rỗng");
+  if(cart.length===0) return alert("Bàn trống");
 
   // Bàn nhân viên
   if(currentTable.type==="staff"){
@@ -587,13 +601,15 @@ function renderCart(){
   const dateKey = new Date().toISOString().slice(0,10);
 
   await ordersRef.add({
-    tableId: currentTable.id,
-    tableName: currentTable.name,
-    items: cart,
-    total,
-    paymentMethod: paymentMethod.value,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  	tableId: currentTable.id,
+  	tableName: currentTable.name,
+  	items: cart,
+ 	total,
+  	paymentMethod: paymentMethod.value,
+  	createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  	createdBy: "Trương Đặng"   // người làm mặc định
   });
+
 
   const dailyRef = db.collection("stores").doc(storeId).collection("daily").doc(dateKey);
   await db.runTransaction(async(tx)=>{
@@ -644,8 +660,9 @@ function renderCart(){
         <style>body{font-family:Arial;} h3{margin-bottom:0}</style>
       </head><body>
         <h3>Hóa đơn - ${escapeHtml(order.id)}</h3>
-        <div>${escapeHtml(order.createdByEmail || order.createdBy)}</div>
-        <div>${order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : ''}</div>
+	<div><b>Bàn:</b> ${escapeHtml(order.tableName || order.tableId)}</div>
+	<div><b>Người làm:</b> ${escapeHtml(order.createdBy)}</div>
+	<div><b>Thời gian:</b> ${order.createdAt && order.createdAt.toDate ? order.createdAt.toDate().toLocaleString() : ''}</div>
         <hr/>
         <ul>
           ${order.items.map(i=>`<li>${escapeHtml(i.name)} x${i.qty} — ${formatMoney(i.price)} VNĐ</li>`).join('')}
@@ -701,6 +718,7 @@ const tables = [
   {id:10,name:"T2",type:"normal",status:"empty", x:120, y:260},
 
   {id:99,name:"Nhân viên",type:"staff",status:"empty", x:20, y:330},
+  {id:100, name:"Mang về", type:"takeaway", status:"empty", x:120, y:330},
 ];
 
 
@@ -719,12 +737,19 @@ function renderTables(){
     if(t.type==="staff") div.classList.add("staff");
     else div.classList.add(t.status==="empty" ? "empty" : "busy");
 
+    if(currentTable && currentTable.id === t.id){
+      div.classList.add("active");
+    }
+
     div.textContent=t.name;
 
-    div.onclick=()=>{
-      currentTable=t;
-      document.querySelectorAll(".table").forEach(x=>x.classList.remove("active"));
-      div.classList.add("active");
+    div.onclick = () => {
+      currentTable = t;
+
+      document.getElementById("tableScreen").classList.add("hidden");
+      document.getElementById("orderScreen").classList.remove("hidden");
+
+      renderTables();
       renderCart();
     };
 
@@ -732,22 +757,24 @@ function renderTables(){
   });
 }
 
-
 const btnHistory = document.getElementById("btnHistory");
 const historyView = document.getElementById("historyView");
-const mainContainer = document.getElementById("mainView");
+const tableScreen = document.getElementById("tableScreen");
+const orderScreen = document.getElementById("orderScreen");
 const btnBack = document.getElementById("btnBack");
 
 btnHistory.onclick = () => {
-  mainContainer.classList.add("hidden");
+  tableScreen.classList.add("hidden");
+  orderScreen.classList.add("hidden");
   historyView.classList.remove("hidden");
   loadHistoryDays();
 };
 
 btnBack.onclick = () => {
   historyView.classList.add("hidden");
-  mainContainer.classList.remove("hidden");
+  tableScreen.classList.remove("hidden");
 };
+
 
 async function loadHistoryDays(){
   const daysList = document.getElementById("daysList");
@@ -814,6 +841,20 @@ async function loadDayDetail(dateKey){
 
   detail.innerHTML = html;
 }
+
+function changeTable() {
+  currentTable = null; // bỏ chọn bàn hiện tại
+
+  // Ẩn giao diện order
+  document.getElementById("orderScreen").classList.add("hidden");
+
+  // Hiện lại giao diện chọn bàn
+  document.getElementById("tableScreen").classList.remove("hidden");
+
+  // Reset lại hiển thị bàn
+  document.getElementById("tableNumberDisplay").innerText = "Bàn: --";
+}
+
 
 window.onload = () => {
   renderTables();
