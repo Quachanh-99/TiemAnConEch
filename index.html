@@ -222,12 +222,12 @@ button.secondary {
 
    
       <hr />
-      <div>
+      <div id="productAdmin">
         <h4>Quản lý sản phẩm</h4>
         <input id="pName" placeholder="Tên sản phẩm" />
         <input id="pPrice" placeholder="Giá (VNĐ)" type="number" />
         <button id="btnAddProduct">Thêm/Update</button>
-        <div class="small">* Thêm ở store demo-store. Để xóa/ sửa dùng Firebase Console.</div>
+  
       </div>
     </div>
   
@@ -442,19 +442,27 @@ auth.onAuthStateChanged(async (user) => {
       return;
     }
     products.forEach(p => {
-      const div = document.createElement('div');
-      div.className = 'product';
-      div.innerHTML = `
-        <div>
-          <div class="product-name">${escapeHtml(p.name)}</div>
-          <div class="small">Giá: ${formatMoney(p.price)} VNĐ</div>
+  	const div = document.createElement('div');
+  	div.className = 'product';
+
+  	let deleteBtn = "";
+  	if (window.currentUser && window.currentUser.role === "owner") {
+        deleteBtn = `<button data-id="${p.id}" class="btnDelete" style="background:#ef4444">Xóa</button>`;
+  	}
+
+  	div.innerHTML = `
+    	<div>
+           <div class="product-name">${escapeHtml(p.name)}</div>
+           <div class="small">Giá: ${formatMoney(p.price)} VNĐ</div>
         </div>
-        <div>
-          <button data-id="${p.id}" class="btnAdd">Thêm</button>
+        <div style="display:flex; gap:6px">
+           <button data-id="${p.id}" class="btnAdd">Thêm</button>
+           ${deleteBtn}
         </div>
-      `;
-      productsList.appendChild(div);
-    });
+   `;
+  productsList.appendChild(div);
+});
+    //nút thêm
     // attach handlers
     Array.from(document.getElementsByClassName('btnAdd')).forEach(b=>{
       b.onclick = () => {
@@ -462,6 +470,24 @@ auth.onAuthStateChanged(async (user) => {
         const prod = products.find(x=>x.id===id);
         if(prod) addToCart(prod);
       };
+    });
+    // nút xóa
+    Array.from(document.getElementsByClassName('btnDelete')).forEach(b=>{
+  	b.onclick = async () => {
+    	if(!currentUser || currentUser.role !== "owner"){
+        return alert("Chỉ chủ quán mới được xóa sản phẩm");
+        }
+
+    	const id = b.getAttribute('data-id');
+    	if(!confirm("Xóa sản phẩm này luôn nha?")) return;
+
+    	try{
+          await productsRef.doc(id).delete();
+          alert("Đã xóa sản phẩm");
+    	}catch(e){
+          alert("Lỗi khi xóa: " + e.message);
+        }
+  	};
     });
   }
 
