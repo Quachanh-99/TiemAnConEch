@@ -699,8 +699,19 @@ function renderCart(){
   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
 }, { merge: true });
 
+// reset bàn hiện tại
+currentTable = null;
+
+// quay về màn hình chọn bàn
+document.getElementById("orderScreen").classList.add("hidden");
+document.getElementById("tableScreen").classList.remove("hidden");
+
+// vẽ lại bàn ngay cho mượt
+renderTables();
 
 };
+
+
   function listenTables(){
   tablesRef.onSnapshot(snap => {
     snap.forEach(doc => {
