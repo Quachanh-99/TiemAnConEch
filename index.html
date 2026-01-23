@@ -309,9 +309,10 @@ const firebaseConfig = {
  firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
 const ordersRef = db.collection('stores').doc(storeId).collection('orders');
 const tablesRef = db.collection("stores").doc(storeId).collection("tables");
-const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
+
   document.getElementById('storeIdDisplay').textContent = storeId;
 
   // enable offline persistence (indexedDB)
