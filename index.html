@@ -621,33 +621,31 @@ function renderCart(){
   row.className = "cart-item";
 
   row.innerHTML = `
-    <div style="flex:1">
-      <b>${escapeHtml(i.name)}</b><br/>
-      <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
+  <div style="flex:1">
+    <b>${escapeHtml(i.name)}</b><br/>
+    <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
 
-      <div style="margin-top:4px">
-        <input
-          id="note-${i.id}"
-          type="text"
-          placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
-          value="${escapeHtml(i.note || "")}"
-          oninput="this.value = this.value.toUpperCase()"
-          style="font-weight:bold; width:100%;"
-        />
-        <button
-          onclick="saveNote('${i.id}')"
-          style="margin-top:4px; background:#16a34a"
-        >
-          ✔ Lưu ghi chú
-        </button>
-      </div>
+    <div style="margin-top:4px">
+      <input
+        id="note-${i.id}"
+        type="text"
+        placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
+        value="${escapeHtml(i.note || "")}"
+        oninput="this.value = this.value.toUpperCase()"
+        style="font-weight:bold; width:100%;"
+      />
+      <button onclick="saveNote('${i.id}')" 
+              style="margin-top:4px; background:#16a34a">
+        ✔ Lưu ghi chú
+      </button>
     </div>
+  </div>
 
-    <div>
-      <button onclick="changeQty('${i.id}',-1)">-</button>
-      <button onclick="changeQty('${i.id}',1)">+</button>
-    </div>
-  `;
+  <div>
+    <button onclick="changeQty('${i.id}',-1)">-</button>
+    <button onclick="changeQty('${i.id}',1)">+</button>
+  </div>
+`;
 
   cartList.appendChild(row);
   total += i.price * i.qty;
