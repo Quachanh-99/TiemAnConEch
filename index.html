@@ -574,8 +574,7 @@ async function changeQty(id, delta){
   cart: cart,
   status: "busy",
   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-
+}, { merge: true });
   }
 }
 
