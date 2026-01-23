@@ -276,6 +276,9 @@ button.secondary {
   </footer>
 
 <script>
+  // ====== GLOBAL STATE ======
+  let currentTable = null;
+  let carts = {};
 
   // ====== CẬP NHẬT firebaseConfig Ở ĐÂY ======
  // https://firebase.google.com/docs/web/setup#available-libraries
@@ -664,8 +667,7 @@ function renderCart(){
     return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   }
 
-  // initial render
-  renderCart();
+  
 
   // ========== OPTIONAL: Firestore rules suggestion ==========
   // Note: you must set rules in Firebase Console; below is a recommended starting point:
@@ -681,8 +683,7 @@ function renderCart(){
     }
   }
   */
-let currentTable = null;
-let carts = {};
+
 
 const tables = [
   {id:1,name:"C1",type:"normal",status:"empty", x:20, y:20},
@@ -816,6 +817,7 @@ async function loadDayDetail(dateKey){
 
 window.onload = () => {
   renderTables();
+  renderCart();
 }; 
  
 </script>
