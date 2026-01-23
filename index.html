@@ -566,10 +566,11 @@ async function changeQty(id, delta){
     if(cart[idx].qty <= 0) cart.splice(idx,1);
 
     await tablesRef.doc(String(currentTable.id)).update({
-      cart: cart,
-      status: cart.length ? "busy" : "empty",
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+  cart: newCart,
+  status: "busy",
+  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+
   }
 }
 
@@ -700,7 +701,7 @@ function renderCart(){
 
       if(t){
         t.status = data.status;
-        t.cart = data.cart || [];
+        t.cart = data.cart || []  (t.cart.length > 0 ? "busy" : "empty");
       }
     });
 
