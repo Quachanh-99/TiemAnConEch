@@ -179,6 +179,12 @@ button.secondary {
   }
 }
 
+.qty-badge{
+  font-weight: 900;
+  font-size: 16px;
+  color: #dc2626;   /* đỏ đậm */
+}
+
 </style>
   <!-- Firebase CDN (compat mode for simpler single-file example) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -623,7 +629,11 @@ function renderCart(){
   row.innerHTML = `
   <div style="flex:1">
     <b>${escapeHtml(i.name)}</b><br/>
-    <span class="small">${formatMoney(i.price)} x ${i.qty}</span>
+    <span class="small">
+       ${formatMoney(i.price)} 
+       <span class="qty-badge">x${i.qty}</span>
+    </span>
+
 
     <div style="margin-top:4px">
       <input
