@@ -265,8 +265,7 @@ button.secondary {
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center">
           <select id="paymentMethod">
             <option value="cash">Tiền mặt</option>
-            <option value="momo">Ví điện tử</option>
-            <option value="card">Thẻ</option>
+            <option value="momo">Chuyển khoản</option>
           </select>
           <button onclick="changeTable()">Đổi bàn</button>
           <button id="btnPay">Thanh toán</button>
@@ -992,12 +991,20 @@ async function loadDayDetail(dateKey){
     .get();
 
   let totalDay = 0;
+  let totalCash = 0;
+  let totalTransfer = 0;
   let productSummary = {};
   let html = `<h4>Ngày ${dateKey}</h4>`;
 
   ordersSnap.forEach(doc=>{
     const o = doc.data();
     totalDay += o.total;
+
+    if(o.paymentMethod === "cash"){
+      totalCash += o.total;
+    }else if(o.paymentMethod === "momo"){
+      totalTransfer += o.total;
+    }
 
     o.items.forEach(i=>{
       if(!productSummary[i.name]) productSummary[i.name]=0;
@@ -1007,6 +1014,9 @@ async function loadDayDetail(dateKey){
     html += `
       <div class="panel">
         <b>Bàn:</b> ${o.tableName || o.tableId} – ${formatMoney(o.total)} VNĐ
+        <div class="small">Thanh toán: ${
+          o.paymentMethod === "cash" ? "Tiền mặt" : "Chuyển khoản"
+        }</div>
       </div>
     `;
   });
@@ -1017,7 +1027,17 @@ async function loadDayDetail(dateKey){
   }
   html += `</ul>`;
 
-  html += `<div><b>Tổng doanh thu:</b> ${formatMoney(totalDay)} VNĐ</div>`;
+  html += `
+    <div style="margin-top:10px">
+      <b>Tổng doanh thu:</b> ${formatMoney(totalDay)} VNĐ
+    </div>
+    <div class="small" style="margin-top:4px">
+      🧾 Tiền mặt: <b style="color:#16a34a">${formatMoney(totalCash)} VNĐ</b>
+    </div>
+    <div class="small">
+      💳 Chuyển khoản: <b style="color:#2563eb">${formatMoney(totalTransfer)} VNĐ</b>
+    </div>
+  `;
 
   detail.innerHTML = html;
 }
