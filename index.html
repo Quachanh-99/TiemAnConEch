@@ -1083,7 +1083,7 @@ async function autoSaveNote(productId, value){
 
   cart[idx].note = note;
 
-  // chống spam Firestore: chỉ lưu sau 500ms ngừng gõ
+  // chống spam Firestore: chỉ lưu sau 3s ngừng gõ
   clearTimeout(noteTimeout);
   noteTimeout = setTimeout(async () => {
     await tablesRef.doc(String(currentTable.id)).set({
@@ -1092,7 +1092,7 @@ async function autoSaveNote(productId, value){
     }, { merge: true });
 
     console.log("Đã auto-save ghi chú:", cart[idx].name, note);
-  }, 30000);
+  }, 3000);
 }
 </script>
 </body>
