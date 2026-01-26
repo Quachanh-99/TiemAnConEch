@@ -184,6 +184,16 @@ button.secondary {
   font-size: 16px;
   color: #dc2626;   /* đỏ đậm */
 }
+.cart-total{
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.cart-total-price{
+  font-size: 22px;
+  font-weight: 900;
+  color: #dc2626;
+}
 
 </style>
   <!-- Firebase CDN (compat mode for simpler single-file example) -->
@@ -261,7 +271,10 @@ button.secondary {
 
       <div id="cartList"></div>
       <div style="margin-top:10px">
-        <div class="small">Tổng: <b id="totalAmount">0</b> VNĐ</div>
+        <div class="cart-total">
+  	Tổng:
+  	<span id="totalAmount" class="cart-total-price">0</span> VNĐ
+	</div>
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center">
           <select id="paymentMethod">
             <option value="cash">Tiền mặt</option>
