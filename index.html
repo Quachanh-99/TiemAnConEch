@@ -648,20 +648,16 @@ function renderCart(){
 
 
     <div style="margin-top:4px">
-      <input
-        id="note-${i.id}"
-        type="text"
-        placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
-        value="${escapeHtml(i.note || "")}"
-        oninput="this.value = this.value.toUpperCase()"
-        style="font-weight:bold; width:100%;"
-      />
-      <button onclick="saveNote('${i.id}')" 
-              style="margin-top:4px; background:#16a34a">
-        ✔ Lưu ghi chú
-      </button>
-    </div>
-  </div>
+  <input
+    id="note-${i.id}"
+    type="text"
+    placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
+    value="${escapeHtml(i.note || "")}"
+    oninput="autoSaveNote('${i.id}', this.value)"
+    style="font-weight:bold; width:100%;"
+  />
+</div>
+
 
   <div>
     <button onclick="changeQty('${i.id}',-1)">-</button>
@@ -1073,27 +1069,31 @@ window.onload = async () => {
   listenTables();
 };
 
-async function saveNote(productId){
+let noteTimeout = null;
+
+async function autoSaveNote(productId, value){
   if(!currentTable) return;
+
+  // ép chữ hoa
+  const note = value.toUpperCase();
 
   let cart = currentTable.cart || [];
   const idx = cart.findIndex(i => i.id === productId);
-
   if(idx < 0) return;
-
-  const input = document.getElementById("note-" + productId);
-  const note = input.value.trim().toUpperCase();
 
   cart[idx].note = note;
 
-  await tablesRef.doc(String(currentTable.id)).update({
-    cart: cart,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  // chống spam Firestore: chỉ lưu sau 500ms ngừng gõ
+  clearTimeout(noteTimeout);
+  noteTimeout = setTimeout(async () => {
+    await tablesRef.doc(String(currentTable.id)).set({
+      cart: cart,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 
-  alert("Đã lưu ghi chú cho món: " + cart[idx].name);
+    console.log("Đã auto-save ghi chú:", cart[idx].name, note);
+  }, 500);
 }
- 
 </script>
 </body>
 </html>
