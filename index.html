@@ -688,12 +688,24 @@ async function changeQty(id, delta){
 
 function renderCart(){
   const target = currentTable || currentTakeaway;
-  if(!target) {
-    cartList.innerHTML = '<div class="small">Chưa chọn</div>';
+  if(!target) return;
+
+  const cart = target.cart || [];
+
+  if(!currentTable.cart) currentTable.cart = [];
+
+  document.getElementById("tableNumberDisplay").innerText =
+    currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
+
+  if(!currentTable){
+    cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
     totalAmountEl.textContent = "0";
-    document.getElementById("tableNumberDisplay").innerText = "Chưa chọn";
     return;
   }
+
+  // TODO: render item ở đây
+}
+
 
   const cart = target.cart || [];
   target.cart = cart;
