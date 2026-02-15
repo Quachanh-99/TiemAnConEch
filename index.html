@@ -855,25 +855,27 @@ renderTables();
   }
   */
 
-
 const tables = [
-  {id:1,name:"C1",type:"normal",status:"empty", x:20, y:20},
-  {id:2,name:"C2",type:"normal",status:"empty", x:20, y:90},
-  {id:3,name:"C3",type:"normal",status:"empty", x:20, y:160},
+  // ===== CỘT 1 (TRÁI) =====
+  { id: 9,  name: "T1", type: "normal", status: "empty", x: 20,  y: 20 },
+  { id: 3,  name: "C3", type: "normal", status: "empty", x: 20,  y: 90 },
+  { id: 2,  name: "C2", type: "normal", status: "empty", x: 20,  y: 160 },
+  { id: 1,  name: "C1", type: "normal", status: "empty", x: 20,  y: 230 },
+  { id: 99, name: "Nhân viên", type: "staff", status: "empty", x: 20,  y: 310 },
 
-  {id:4,name:"C4",type:"normal",status:"empty", x:120, y:20},
-  {id:5,name:"C5",type:"normal",status:"empty", x:120, y:90},
-  {id:6,name:"C6",type:"normal",status:"empty", x:120, y:160},
+  // ===== CỘT 2 (GIỮA) =====
+  { id: 10, name: "T2", type: "normal", status: "empty", x: 120, y: 20 },
+  { id: 6,  name: "C6", type: "normal", status: "empty", x: 120, y: 90 },
+  { id: 5,  name: "C5", type: "normal", status: "empty", x: 120, y: 160 },
+  { id: 4,  name: "C4", type: "normal", status: "empty", x: 120, y: 230 },
+  { id: 100,name: "Mang về", type: "takeaway", status: "empty", x: 120, y: 310 },
 
-  {id:7,name:"C7",type:"normal",status:"empty", x:240, y:50},
-  {id:8,name:"C8",type:"normal",status:"empty", x:240, y:130},
-
-  {id:9,name:"T1",type:"normal",status:"empty", x:20, y:260},
-  {id:10,name:"T2",type:"normal",status:"empty", x:120, y:260},
-
-  {id:99,name:"Nhân viên",type:"staff",status:"empty", x:20, y:330},
-  {id:100, name:"Mang về", type:"takeaway", status:"empty", x:120, y:330},
+  // ===== CỘT 3 (PHẢI) =====
+  { id: 8,  name: "C8", type: "normal", status: "empty", x: 240, y: 90 },
+  { id: 7,  name: "C7", type: "normal", status: "empty", x: 240, y: 160 },
 ];
+
+
  async function initTablesToFirestore(){
   const snap = await tablesRef.get();
   if(!snap.empty) return;
