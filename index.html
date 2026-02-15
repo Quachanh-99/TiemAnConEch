@@ -231,6 +231,19 @@ button.secondary {
 
  <div class="container" id="tableScreen">
 
+ <div class="container hidden" id="takeawayScreen">
+  <div class="panel">
+    <h3>🥡 Mang về</h3>
+
+    <button onclick="createTakeaway()">➕ Thêm khách</button>
+
+    <div id="takeawayList" style="margin-top:10px"></div>
+
+    <button style="margin-top:10px" onclick="backToTables()">⬅ Quay lại</button>
+  </div>
+</div>
+
+
     <div class="panel">
      <h3>Bàn</h3>
      <div id="tablesGrid" class="tables"></div>
@@ -307,6 +320,9 @@ button.secondary {
 <script>
   // ====== GLOBAL STATE ======
   let currentTable = null;
+
+  // bill mang về đang chọn
+  let currentTakeaway = null; 
  
   // ====== CẬP NHẬT firebaseConfig Ở ĐÂY ======
  // https://firebase.google.com/docs/web/setup#available-libraries
@@ -330,6 +346,11 @@ const db = firebase.firestore();
 const storeId = "demo-store"; // đơn giản: dùng 1 store id cố định
 const ordersRef = db.collection('stores').doc(storeId).collection('orders');
 const tablesRef = db.collection("stores").doc(storeId).collection("tables");
+
+const takeawayRef = db
+  .collection("stores")
+  .doc(storeId)
+  .collection("takeawayBills");
 
   document.getElementById('storeIdDisplay').textContent = storeId;
 
@@ -361,16 +382,34 @@ const tablesRef = db.collection("stores").doc(storeId).collection("tables");
   const btnClear = document.getElementById('btnClear');
   
  btnClear.onclick = async () => {
-  if(!currentTable) return;
+  if(!currentTable && !currentTakeaway) return;
 
-  await tablesRef.doc(String(currentTable.id)).set({
-    cart: [],
-    status: "empty",
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+  if(currentTable){
+    await tablesRef.doc(String(currentTable.id)).update({
+      cart: [],
+      status: "empty"
+    });
+    alert("Đã xóa bill bàn " + currentTable.name);
+    currentTable.cart = [];
+  }
 
-  alert("Đã xóa bill bàn " + currentTable.name);
+  if(currentTakeaway){
+    await takeawayRef.doc(currentTakeaway.id).delete();
+    alert("Đã xóa đơn " + currentTakeaway.name);
+    currentTakeaway = null;
+  }
+
+  renderCart();
 };
+
+
+ // await tablesRef.doc(String(currentTable.id)).set({
+ //   cart: [],
+ //   status: "empty",
+ //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+//  }, { merge: true });
+
+ 
 
 
 
@@ -562,43 +601,83 @@ auth.onAuthStateChanged(async (user) => {
 
  
   async function addToCart(prod){
-  if(!currentTable) return alert("Chọn bàn trước");
+  if(!currentTable && !currentTakeaway){
+    return alert("Chọn bàn hoặc tạo đơn mang về");
+  }
 
-  let cart = currentTable.cart || [];
-  const idx = cart.findIndex(i=>i.id===prod.id);
-  if(idx>=0) cart[idx].qty++;
-  else cart.push({ 
-	id: prod.id, 
-	name: prod.name, 
-	price: prod.price, 
-	qty: 1,
-	note: ""   // ← note
-});
-       
-  await tablesRef.doc(String(currentTable.id)).set({
-    cart: cart,
-    status: "busy",
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
+  const target = currentTable || currentTakeaway;
+
+  let cart = target.cart || [];
+  const idx = cart.findIndex(i => i.id === prod.id);
+
+  if(idx >= 0){
+    cart[idx].qty++;
+  }else{
+    cart.push({
+      id: prod.id,
+      name: prod.name,
+      price: prod.price,
+      qty: 1,
+      note: ""
+    });
+  }
+
+  // 🔥 gán ngược lại
+  target.cart = cart;
+
+  // 🔥 lưu đúng nơi
+  if(currentTable){
+    await tablesRef.doc(currentTable.id).update({ cart });
+  }
+
+  if(currentTakeaway){
+    await takeawayRef.doc(currentTakeaway.id).update({ cart });
+  }
+
+  renderCart();
 }
+
+       
+//  await tablesRef.doc(String(currentTable.id)).set({
+ //   cart: cart,
+  //  status: "busy",
+ //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+//  }, { merge: true });
+//}
 
 
 
 async function changeQty(id, delta){
-  if(!currentTable) return;
+  if(!currentTable && !currentTakeaway) return;
 
-  let cart = currentTable.cart || [];
-  const idx = cart.findIndex(i=>i.id===id);
+  const target = currentTable || currentTakeaway;
 
-  if(idx>=0){
+  let cart = target.cart || [];
+  const idx = cart.findIndex(i => i.id === id);
+
+  if(idx >= 0){
     cart[idx].qty += delta;
-    if(cart[idx].qty <= 0) cart.splice(idx,1);
+    if(cart[idx].qty <= 0) cart.splice(idx, 1);
 
-    await tablesRef.doc(String(currentTable.id)).update({
-  cart: cart,
-  status: "busy",
-  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-}, { merge: true });
+    target.cart = cart;
+
+    // 🔥 update đúng nơi
+    if(currentTable){
+      await tablesRef.doc(String(currentTable.id)).update({
+        cart: cart,
+        status: "busy",
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    if(currentTakeaway){
+      await takeawayRef.doc(currentTakeaway.id).update({
+        cart: cart,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    renderCart();
   }
 }
 
@@ -608,31 +687,53 @@ async function changeQty(id, delta){
 
 
 function renderCart(){
-  if(!currentTable) return;
-
-  if(!currentTable.cart) currentTable.cart = [];
-  document.getElementById("tableNumberDisplay").innerText =
-    currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
-
-  if(!currentTable){
-    cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
+  const target = currentTable || currentTakeaway;
+  if(!target) {
+    cartList.innerHTML = '<div class="small">Chưa chọn</div>';
     totalAmountEl.textContent = "0";
+    document.getElementById("tableNumberDisplay").innerText = "Chưa chọn";
     return;
   }
 
-  
-  
+  const cart = target.cart || [];
+  target.cart = cart;
 
-  const cart = currentTable.cart || [];
+  // Hiển thị tên
+  document.getElementById("tableNumberDisplay").innerText =
+    currentTable
+      ? "Bàn: " + currentTable.name
+      : target.name; // Mang về 1, 2, 3
 
+  // Render cart
   cartList.innerHTML = "";
   let total = 0;
 
-  if(cart.length === 0){
-    cartList.innerHTML = '<div class="small">Giỏ trống</div>';
-    totalAmountEl.textContent = "0";
-    return;
-  }
+  cart.forEach(i => {
+    total += i.price * i.qty;
+    cartList.innerHTML += `
+      <div class="cart-item">
+        <span>${i.name}</span>
+        <b style="color:#b00000; font-size:18px">x${i.qty}</b>
+        <span>${(i.price*i.qty).toLocaleString()}</span>
+      </div>
+    `;
+  });
+
+  totalAmountEl.textContent = total.toLocaleString();
+}
+  
+  
+
+  //const cart = currentTable.cart || [];
+
+ // cartList.innerHTML = "";
+ // let total = 0;
+
+ // if(cart.length === 0){
+ //   cartList.innerHTML = '<div class="small">Giỏ trống</div>';
+  //  totalAmountEl.textContent = "0";
+  //  return;
+ // }
 
   cart.forEach(i=>{
   const row = document.createElement("div");
@@ -692,33 +793,40 @@ function renderCart(){
 
 
   btnPay.onclick = async () => {
-  if(!currentTable) return alert("Chưa chọn bàn");
+  if(!currentTable && !currentTakeaway){
+    return alert("Chưa chọn bàn hoặc đơn mang về");
+  }
 
-  const cart = currentTable.cart || [];
+  const target = currentTable || currentTakeaway;
+  const cart = target.cart || [];
 
-  if(cart.length===0) return alert("Bàn trống");
+  if(cart.length === 0){
+    return alert("Chưa có món");
+  }
 
-  // Bàn nhân viên
-  if(currentTable.type==="staff"){
+
+
+  // 🚫 Bàn nhân viên (chỉ áp dụng cho bàn)
+  if(currentTable && currentTable.type === "staff"){
     alert("Bàn nhân viên ăn – không tính doanh thu");
-    
     return;
   }
 
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const dateKey = new Date().toISOString().slice(0,10);
+  const total = cart.reduce((s,i)=>s + i.price * i.qty, 0);
 
   await ordersRef.add({
-  	tableId: currentTable.id,
-  	tableName: currentTable.name,
-  	items: cart,
- 	total,
-  	paymentMethod: paymentMethod.value,
-  	createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  	createdBy: "Trương Đặng"   // người làm mặc định
+    tableId: currentTable ? currentTable.id : null,
+    tableName: currentTable ? currentTable.name : target.name, // Mang về 1,2,3
+    items: cart,
+    total,
+    paymentMethod: paymentMethod.value,
+    orderType: currentTable ? "table" : "takeaway",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy: "Trương Đặng" // Người làm mặc định
   });
 
-
+  // 🔥 DỌN SAU THANH TOÁN
+  const dateKey = new Date().toISOString().slice(0,10);
   const dailyRef = db.collection("stores").doc(storeId).collection("daily").doc(dateKey);
   await db.runTransaction(async(tx)=>{
     const snap = await tx.get(dailyRef);
@@ -736,6 +844,27 @@ function renderCart(){
 
   alert("Thanh toán xong cho " + currentTable.name);
 
+  if(currentTable){
+    await tablesRef.doc(String(currentTable.id)).update({
+      cart: [],
+      status: "empty",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentTable.cart = [];
+  }
+
+  if(currentTakeaway){
+    await takeawayRef.doc(currentTakeaway.id).delete();
+    currentTakeaway = null;
+  }
+
+  renderCart();
+  renderTables();
+};
+
+
+
+  
   await tablesRef.doc(String(currentTable.id)).set({
   cart: [],
   status: "empty",
@@ -760,7 +889,7 @@ renderTables();
     snap.forEach(doc => {
       const data = doc.data();
       const t = tables.find(x => String(x.id) === doc.id);
-
+      if(!t) return;
       if(t){
  	 t.cart = data.cart || [];
  	 t.status = data.status || (t.cart.length > 0 ? "busy" : "empty");
@@ -916,11 +1045,13 @@ function renderTables(){
 
     div.textContent=t.name;
 
-    div.onclick = () => {
+    
+  
+ div.onclick = () => {
   console.log("CLICK TABLE:", t);   // log để xem t là gì
 
-  if(!t){
-    console.error("Table is undefined");
+  if(t.type === "takeaway"){
+    openTakeawayScreen();
     return;
   }
 
@@ -929,6 +1060,7 @@ function renderTables(){
   }
 
   currentTable = t;
+  currentTakeaway = null;
 
   document.getElementById("tableScreen").classList.add("hidden");
   document.getElementById("orderScreen").classList.remove("hidden");
@@ -936,6 +1068,7 @@ function renderTables(){
   renderTables();
   renderCart();
 };
+
 
 
 
@@ -1096,6 +1229,73 @@ async function autoSaveNote(productId, value){
     console.log("Đã auto-save ghi chú:", cart[idx].name, note);
   }, 3000);
 }
+
+function openTakeawayScreen(){
+  document.getElementById("tableScreen").classList.add("hidden");
+  document.getElementById("orderScreen").classList.add("hidden");
+  document.getElementById("takeawayScreen").classList.remove("hidden");
+  renderTakeawayList();
+}
+
+function backToTables(){
+  document.getElementById("takeawayScreen").classList.add("hidden");
+  document.getElementById("tableScreen").classList.remove("hidden");
+}
+
+async function createTakeaway(){
+  const snap = await takeawayRef.get();
+  const index = snap.size + 1;
+
+  const id = "MV-" + Date.now();
+
+  await takeawayRef.doc(id).set({
+    id,
+    name: "Mang về " + index,
+    cart: [],
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  openTakeawayBill(id);
+}
+
+async function renderTakeawayList(){
+  const list = document.getElementById("takeawayList");
+  list.innerHTML = "Đang tải...";
+
+  const snap = await takeawayRef.orderBy("createdAt").get();
+  list.innerHTML = "";
+
+  if(snap.empty){
+    list.innerHTML = "<div class='small'>Chưa có đơn mang về</div>";
+    return;
+  }
+
+  snap.forEach(doc=>{
+    const b = doc.data();
+    const div = document.createElement("div");
+    div.className = "panel";
+    div.textContent = b.name;
+    div.onclick = () => openTakeawayBill(b.id);
+    list.appendChild(div);
+  });
+}
+
+async function openTakeawayBill(id){
+  const doc = await takeawayRef.doc(id).get();
+  if(!doc.exists) return;
+
+  currentTakeaway = doc.data();
+  currentTable = null;
+
+  document.getElementById("takeawayScreen").classList.add("hidden");
+  document.getElementById("orderScreen").classList.remove("hidden");
+
+  document.getElementById("tableNumberDisplay").innerText =
+    currentTakeaway.name;
+
+  renderCart();
+}
+
 </script>
 </body>
 </html>
