@@ -383,8 +383,39 @@ const takeawaysRef = db
   const btnClear = document.getElementById('btnClear');
   
  btnClear.onclick = async () => {
-  if(!currentTable) return;
+  if (!currentTable) return;
 
+  // 👉 NẾU LÀ ĐƠN MANG VỀ
+  if (currentTable.type === "takeaway") {
+    if (!confirm("Xóa đơn mang về này?")) return;
+
+    // Xóa đơn hiện tại
+    await currentTable.ref.delete();
+
+    // Lấy lại danh sách mang về
+    const snap = await takeawaysRef.orderBy("index").get();
+
+    let idx = 1;
+    for (const doc of snap.docs) {
+      await takeawaysRef.doc(doc.id).update({
+        index: idx,
+        name: "Mang về " + idx
+      });
+      idx++;
+    }
+
+    // Reset trạng thái
+    currentTable = null;
+
+    // Quay về màn hình mang về
+    document.getElementById("orderScreen").classList.add("hidden");
+    takeawayScreen.classList.remove("hidden");
+
+    loadTakeaways();
+    return;
+  }
+
+  // 👉 BÀN THƯỜNG (GIỮ NGUYÊN)
   await tablesRef.doc(String(currentTable.id)).set({
     cart: [],
     status: "empty",
@@ -393,6 +424,7 @@ const takeawaysRef = db
 
   alert("Đã xóa bill bàn " + currentTable.name);
 };
+
 
 
 
@@ -1151,6 +1183,8 @@ btnAddTakeaway.onclick = async () => {
 
   loadTakeaways();
 };
+
+
 async function loadTakeaways() {
   takeawayList.innerHTML = "Đang tải...";
 
@@ -1165,14 +1199,17 @@ async function loadTakeaways() {
   snap.forEach(doc => {
     const t = { id: doc.id, ...doc.data() };
 
-    const div = document.createElement("div");
-    div.className = "panel";
-    div.innerHTML = `
-      <b>${t.name}</b>
-      <div class="small">${t.cart.length} món</div>
+    const btn = document.createElement("button");
+    btn.style.margin = "4px";
+    btn.style.width = "100%";
+    btn.style.textAlign = "left";
+
+    btn.innerHTML = `
+      🥡 <b>${t.name}</b>
+      <span class="small"> – ${t.cart.length} món</span>
     `;
 
-    div.onclick = () => {
+    btn.onclick = () => {
       currentTable = {
         id: t.id,
         name: t.name,
@@ -1186,7 +1223,7 @@ async function loadTakeaways() {
       renderCart();
     };
 
-    takeawayList.appendChild(div);
+    takeawayList.appendChild(btn);
   });
 }
 
