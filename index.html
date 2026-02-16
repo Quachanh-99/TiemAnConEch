@@ -688,53 +688,69 @@ async function changeQty(id, delta){
 
 function renderCart(){
   const target = currentTable || currentTakeaway;
-  if(!target) return;
 
-  const cart = target.cart || [];
-
-  if(!currentTable.cart) currentTable.cart = [];
-
-  document.getElementById("tableNumberDisplay").innerText =
-    currentTable ? "Bàn: " + currentTable.name : "Chưa chọn bàn";
-
-  if(!currentTable){
+  if(!target){
     cartList.innerHTML = '<div class="small">Chưa chọn bàn</div>';
     totalAmountEl.textContent = "0";
     return;
   }
 
-  // TODO: render item ở đây
-}
-
-
   const cart = target.cart || [];
   target.cart = cart;
 
-  // Hiển thị tên
+  // Hiển thị tên bàn / mang về
   document.getElementById("tableNumberDisplay").innerText =
     currentTable
       ? "Bàn: " + currentTable.name
-      : target.name; // Mang về 1, 2, 3
+      : target.name;
 
-  // Render cart
   cartList.innerHTML = "";
   let total = 0;
 
-  cart.forEach(i => {
+  if(cart.length === 0){
+    cartList.innerHTML = '<div class="small">Giỏ trống</div>';
+    totalAmountEl.textContent = "0";
+    return;
+  }
+
+  cart.forEach(i=>{
     total += i.price * i.qty;
-    cartList.innerHTML += `
-      <div class="cart-item">
-        <span>${i.name}</span>
-        <b style="color:#b00000; font-size:18px">x${i.qty}</b>
-        <span>${(i.price*i.qty).toLocaleString()}</span>
+
+    const row = document.createElement("div");
+    row.className = "cart-item";
+
+    row.innerHTML = `
+      <div style="flex:1">
+        <b>${escapeHtml(i.name)}</b><br/>
+        <span class="small">
+          ${formatMoney(i.price)} 
+          <span class="qty-badge">x${i.qty}</span>
+        </span>
+
+        <div style="margin-top:4px">
+          <input
+            type="text"
+            placeholder="Ghi chú (VD: ÍT CAY, KHÔNG HÀNH...)"
+            value="${escapeHtml(i.note || "")}"
+            oninput="autoSaveNote('${i.id}', this.value)"
+            style="font-weight:bold; width:100%;"
+          />
+        </div>
+      </div>
+
+      <div>
+        <button onclick="changeQty('${i.id}',-1)">-</button>
+        <button onclick="changeQty('${i.id}',1)">+</button>
       </div>
     `;
+
+    cartList.appendChild(row);
   });
 
-  totalAmountEl.textContent = total.toLocaleString();
+  totalAmountEl.textContent = formatMoney(total);
 }
-  
-  
+
+
 
   //const cart = currentTable.cart || [];
 
@@ -877,11 +893,6 @@ function renderCart(){
 
 
   
-  await tablesRef.doc(String(currentTable.id)).set({
-  cart: [],
-  status: "empty",
-  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-}, { merge: true });
 
 // reset bàn hiện tại
 currentTable = null;
