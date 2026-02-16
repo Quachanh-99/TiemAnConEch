@@ -738,13 +738,13 @@ function renderCart(){
   	paymentMethod: paymentMethod.value,
   	createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   	createdBy: "Trương Đặng"   // người làm mặc định
-
+ });
 // 👉 Nếu là đơn mang về thì xóa sau khi thanh toán
 if (currentTable.type === "takeaway") {
   await currentTable.ref.delete();
 }
 
-  });
+ 
 
 
   const dailyRef = db.collection("stores").doc(storeId).collection("daily").doc(dateKey);
