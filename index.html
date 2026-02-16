@@ -970,6 +970,27 @@ renderTables();
   }
   */
 
+
+
+ async function initTablesToFirestore(){
+  const snap = await tablesRef.get();
+  if(!snap.empty) return;
+
+  for(const t of tables){
+    await tablesRef.doc(String(t.id)).set({
+      name: t.name,
+      type: t.type,
+      status: "empty",
+      cart: [],
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+  console.log("Đã init tables lên Firestore");
+  }
+
+
+
+
 const tables = [
   // ===== CỘT 1 (TRÁI) =====
   { id: 9,  name: "T1", type: "normal", status: "empty", x: 20,  y: 20 },
@@ -989,24 +1010,6 @@ const tables = [
   { id: 8,  name: "C8", type: "normal", status: "empty", x: 240, y: 90 },
   { id: 7,  name: "C7", type: "normal", status: "empty", x: 240, y: 160 },
 ];
-
-
- async function initTablesToFirestore(){
-  const snap = await tablesRef.get();
-  if(!snap.empty) return;
-
-  for(const t of tables){
-    await tablesRef.doc(String(t.id)).set({
-      name: t.name,
-      type: t.type,
-      status: "empty",
-      cart: [],
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
-  console.log("Đã init tables lên Firestore");
-  }
-
 
 
 
