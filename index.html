@@ -618,7 +618,7 @@ auth.onAuthStateChanged(async (user) => {
   async function addToCart(prod){
   if(!currentTable) return alert("Chọn bàn trước");
 
-  let cart = currentTable.cart || [];
+  let cart = [...(currentTable.cart || [])]; // clone để chắc chắn
   const idx = cart.findIndex(i => i.id === prod.id);
 
   if(idx >= 0){
@@ -632,6 +632,28 @@ auth.onAuthStateChanged(async (user) => {
       note: ""
     });
   }
+
+  // ✅ UPDATE LOCAL STATE TRƯỚC
+  currentTable.cart = cart;
+
+  // ✅ RENDER NGAY
+  renderCart();
+
+  // ✅ SAU ĐÓ MỚI LƯU FIRESTORE
+  if (currentTable.type === "takeaway") {
+    await currentTable.ref.set({
+      cart,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } else {
+    await tablesRef.doc(String(currentTable.id)).set({
+      cart,
+      status: "busy",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
+}
+
 
   // 🔥 QUAN TRỌNG: phân biệt bàn & mang về
   if (currentTable.type === "takeaway") {
