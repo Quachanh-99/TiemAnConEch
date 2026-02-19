@@ -979,7 +979,11 @@ const tables = [
 const tablesGrid = document.getElementById("tablesGrid");
 
 function renderTables(){
+      if (window.DEBUG) {
       console.log("TABLES ARRAY:", tables);
+      }
+}
+
 
   tablesGrid.innerHTML="";
   tables.forEach(t=>{
