@@ -645,8 +645,7 @@ auth.onAuthStateChanged(async (user) => {
   // cập nhật local + vẽ lại UI
   currentTable.cart = cart;
   renderCart();
-  if (currentTable.type === "takeaway") {
-  loadTakeaways();
+ 
 }
 
        
@@ -1148,9 +1147,24 @@ function changeTable() {
   document.getElementById("tableNumberDisplay").innerText = "Bàn: --";
 }
 
+function listenTakeaways(){
+  takeawaysRef
+    .orderBy("index")
+    .onSnapshot(snap => {
+
+      // chỉ update khi đang ở màn hình mang về
+      if (takeawayScreen.classList.contains("hidden")) return;
+
+      loadTakeaways();
+    });
+}
+
+
+
 window.onload = async () => {
   await initTablesToFirestore();
   listenTables();
+  listenTakeaways();
 };
 
 let noteTimeout = null;
