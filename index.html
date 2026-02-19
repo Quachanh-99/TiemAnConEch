@@ -655,25 +655,6 @@ auth.onAuthStateChanged(async (user) => {
 }
 
 
-  // 🔥 QUAN TRỌNG: phân biệt bàn & mang về
-  if (currentTable.type === "takeaway") {
-
-  // 1️⃣ cập nhật state local
-  currentTable.cart = cart;
-
-  // 2️⃣ render ngay cho UI nhảy
-  renderCart();
-
-  // 3️⃣ lưu Firestore (để sync + lịch sử)
-  await currentTable.ref.set({
-    cart: cart,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true });
-
-  return; // ⛔ RẤT QUAN TRỌNG
-}
-
-
        
  if (currentTable.type !== "takeaway") {
   await tablesRef.doc(String(currentTable.id)).set({
