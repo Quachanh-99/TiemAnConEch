@@ -645,6 +645,8 @@ auth.onAuthStateChanged(async (user) => {
   // cập nhật local + vẽ lại UI
   currentTable.cart = cart;
   renderCart();
+  if (currentTable.type === "takeaway") {
+  loadTakeaways();
 }
 
        
